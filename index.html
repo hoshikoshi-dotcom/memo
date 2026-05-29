@@ -776,7 +776,7 @@ function startRecording() {
   if (!SR) { showToast('音声認識が使えません', true); return; }
   recognition = new SR();
   recognition.lang = 'ja-JP';
-  recognition.continuous = true;
+  recognition.continuous = false; // iOSはcontinuous非対応のためfalse固定
   recognition.interimResults = false;
   transcript = '';
 
@@ -792,16 +792,24 @@ function startRecording() {
       transcript += e.results[i][0].transcript;
   };
   recognition.onerror = e => {
-    stopRecording();
+    isRecording = false;
+    const btn = document.getElementById('micBtn');
+    btn.classList.remove('recording'); btn.textContent = '🎤';
+    setStatus('タップして録音開始', '');
     showToast(e.error === 'not-allowed' ? 'マイクの許可が必要です' : '音声認識エラー', true);
   };
-  recognition.onend = () => { if (isRecording) { isRecording = false; onRecordEnd(); } };
+  // onend は手動停止・自動停止どちらでも必ず呼ばれる → 常にonRecordEndを実行
+  recognition.onend = () => {
+    isRecording = false;
+    onRecordEnd();
+  };
   try { recognition.start(); } catch(e) { showToast('録音開始に失敗しました', true); }
 }
 
 function stopRecording() {
   isRecording = false;
   if (recognition) recognition.stop();
+  // onend が発火してonRecordEndを呼ぶ
 }
 
 function onRecordEnd() {
@@ -820,16 +828,19 @@ function onRecordEnd() {
 // ===== AI整形 =====
 async function processWithAI(text) {
   let result = text;
-  if (config.proxyUrl && config.apiKey) {
+  if (config.proxyUrl) {
     try {
       const res = await fetch(config.proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 300,
-          system: '施工管理の現場メモを整理します。音声認識テキストの建設専門用語誤変換を補正し、短い箇条書き（1項目1行、「・」始まり）で出力。余計な説明不要。',
-          messages: [{ role: 'user', content: `現場メモを箇条書きに整形：\n${text}` }]
+          type: 'ai',
+          payload: {
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 300,
+            system: '施工管理の現場メモを整理します。音声認識テキストの建設専門用語誤変換を補正し、短い箇条書き（1項目1行、「・」始まり）で出力。余計な説明不要。',
+            messages: [{ role: 'user', content: `現場メモを箇条書きに整形：\n${text}` }]
+          }
         })
       });
       const d = await res.json();
@@ -975,27 +986,56 @@ function delMemo(id) {
 }
 
 // ===== 日報送信 =====
-function sendDailyReport() {
+async function sendDailyReport() {
   if (memos.length === 0) return;
   const proj = currentProject();
   const d = new Date();
   const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   const subject = `【日報】${proj ? proj.name : '現場'} ${dateStr}`;
   const sorted = [...memos].sort((a,b) => a.time.localeCompare(b.time));
-  const body = [
+
+  const bodyText = [
     `${proj ? proj.name : '現場'} 日報`, dateStr,
     `担当：${config.userName || ''}`, '',
     '━━ 本日のメモ ━━', '',
     ...sorted.map(m => `[${m.time}]\n${m.text}`), '', '以上'
   ].join('\n');
 
-  const to = proj?.toEmails.join(',') || '';
-  const cc = proj?.ccEmails.join(',') || '';
-  let url = `mailto:${encodeURIComponent(to)}`;
-  const ps = [`subject=${encodeURIComponent(subject)}`, `body=${encodeURIComponent(body)}`];
-  if (cc) ps.unshift(`cc=${encodeURIComponent(cc)}`);
-  url += '?' + ps.join('&');
-  window.location.href = url;
+  // 写真を全メモから収集
+  const allPhotos = sorted.flatMap(m => m.photos || []);
+
+  const to = proj?.toEmails || [];
+  const cc = proj?.ccEmails || [];
+
+  if (!config.proxyUrl || to.length === 0) {
+    showToast('現場のメールアドレスを設定してください', true);
+    return;
+  }
+
+  showToast('📧 送信中...');
+  try {
+    const res = await fetch(config.proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'email',
+        to,
+        cc,
+        subject,
+        text: bodyText,
+        photos: allPhotos
+      })
+    });
+    if (res.ok) {
+      showToast('✔ 日報を送信しました');
+    } else {
+      const err = await res.text();
+      console.error(err);
+      showToast('送信に失敗しました', true);
+    }
+  } catch(e) {
+    showToast('送信エラー：' + e.message, true);
+  }
 }
 
 // ===== 設定画面 =====
