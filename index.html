@@ -1264,15 +1264,18 @@ async function sendDailyReport() {
   const subject = `【日報】${proj ? proj.name : '現場'} ${dateStr}`;
   const sorted = [...memos].sort((a,b) => a.time.localeCompare(b.time));
 
-  const bodyText = [
-    `${proj ? proj.name : '現場'} 日報`, dateStr,
-    `担当：${config.userName || ''}`, '',
-    '━━ 本日のメモ ━━', '',
-    ...sorted.map(m => `[${m.time}]\n${m.text}`), '', '以上'
-  ].join('\n');
+  // メモごとに時刻・テキスト・天気・写真をまとめた構造データを送る
+  const memoItems = sorted.map(m => ({
+    time: m.time,
+    text: m.text,
+    weather: m.weather || null,
+    photo: (m.photos && m.photos.length > 0) ? m.photos[0] : null
+  }));
 
-  // 写真を全メモから収集
-  const allPhotos = sorted.flatMap(m => m.photos || []);
+  const headerText = [
+    `${proj ? proj.name : '現場'} 日報`, dateStr,
+    `担当：${config.userName || ''}`
+  ].join('\n');
 
   const to = proj?.toEmails || [];
   const cc = proj?.ccEmails || [];
@@ -1292,12 +1295,14 @@ async function sendDailyReport() {
         to,
         cc,
         subject,
-        text: bodyText,
-        photos: allPhotos
+        headerText,
+        memoItems
       })
     });
     if (res.ok) {
       // 履歴に保存
+      const allPhotos = memoItems.filter(m => m.photo).map(m => m.photo);
+      const bodyText = headerText + '\n\n━━ 本日のメモ ━━\n\n' + memoItems.map(m => `[${m.time}]\n${m.text}`).join('\n\n') + '\n\n以上';
       saveReportHistory({ subject, text: bodyText, photos: allPhotos, sentAt: new Date().toISOString() });
       showToast('✔ 日報を送信しました');
     } else {
