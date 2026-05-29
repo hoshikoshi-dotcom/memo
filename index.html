@@ -872,9 +872,14 @@ function addPhotoToMemo(memoId) {
 
 function pickPhoto(memoId) {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+  input.type = 'file'; input.accept = 'image/*';
+  // capture属性なし → カメラ＋フォトライブラリ両方選択可能
+  input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(input);
   input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
+    const file = e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
       if (memoId) {
@@ -941,4 +946,375 @@ function toggleMemoDetail(id) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
-function esc(s) { return s
+function esc(s) { return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== 編集 =====
+function openEdit(id) {
+  const m = memos.find(m => m.id === id); if (!m) return;
+  editingMemoId = id;
+  document.getElementById('editTextarea').value = m.text;
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('show');
+  editingMemoId = null;
+}
+function saveEdit() {
+  const text = document.getElementById('editTextarea').value.trim();
+  if (!text) return;
+  const idx = memos.findIndex(m => m.id === editingMemoId);
+  if (idx >= 0) { memos[idx].text = text; saveMemos(); renderMemoList(); showToast('✔ 更新しました'); }
+  document.getElementById('editModal').classList.remove('show');
+  editingMemoId = null;
+}
+
+// ===== 削除 =====
+function delMemo(id) {
+  if (!confirm('このメモを削除しますか？')) return;
+  memos = memos.filter(m => m.id !== id); saveMemos(); renderMemoList();
+}
+
+// ===== 日報送信 =====
+function sendDailyReport() {
+  if (memos.length === 0) return;
+  const proj = currentProject();
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const subject = `【日報】${proj ? proj.name : '現場'} ${dateStr}`;
+  const sorted = [...memos].sort((a,b) => a.time.localeCompare(b.time));
+  const body = [
+    `${proj ? proj.name : '現場'} 日報`, dateStr,
+    `担当：${config.userName || ''}`, '',
+    '━━ 本日のメモ ━━', '',
+    ...sorted.map(m => `[${m.time}]\n${m.text}`), '', '以上'
+  ].join('\n');
+
+  const to = proj?.toEmails.join(',') || '';
+  const cc = proj?.ccEmails.join(',') || '';
+  let url = `mailto:${encodeURIComponent(to)}`;
+  const ps = [`subject=${encodeURIComponent(subject)}`, `body=${encodeURIComponent(body)}`];
+  if (cc) ps.unshift(`cc=${encodeURIComponent(cc)}`);
+  url += '?' + ps.join('&');
+  window.location.href = url;
+}
+
+// ===== 設定画面 =====
+function showSettings() {
+  document.getElementById('settingUserName').value = config.userName;
+  document.getElementById('settingProxyUrl').value = config.proxyUrl;
+  document.getElementById('settingApiKey').value   = config.apiKey;
+  renderProjectList();
+  showScreen('settingsScreen');
+}
+function saveSettings() {
+  config.userName = document.getElementById('settingUserName').value.trim();
+  config.proxyUrl = document.getElementById('settingProxyUrl').value.trim();
+  config.apiKey   = document.getElementById('settingApiKey').value.trim();
+  saveConfig(); updateHeader(); checkApiNotice();
+  showMain(); showToast('✔ 設定を保存しました');
+}
+
+function renderProjectList() {
+  document.getElementById('projectList').innerHTML = projects.map(p => `
+    <div class="project-card" onclick="editProject('${p.id}')">
+      <div class="project-card-info">
+        <div class="project-card-name">${esc(p.name)}</div>
+        <div class="project-card-emails">TO: ${p.toEmails.join(', ') || '未設定'}</div>
+      </div>
+      <div style="font-size:18px;color:var(--text-sub);">›</div>
+    </div>
+  `).join('');
+}
+
+// ===== 現場追加・編集 =====
+function newProject() {
+  editingProjectId = null;
+  tempProject = { name: '', toEmails: [], ccEmails: [] };
+  document.getElementById('projectEditTitle').textContent = '現場を追加';
+  document.getElementById('editProjectName').value = '';
+  renderEditTags();
+  showScreen('projectEditScreen');
+}
+
+function editProject(id) {
+  const p = projects.find(p => p.id === id); if (!p) return;
+  editingProjectId = id;
+  tempProject = { name: p.name, toEmails: [...p.toEmails], ccEmails: [...p.ccEmails] };
+  document.getElementById('projectEditTitle').textContent = '現場を編集';
+  document.getElementById('editProjectName').value = p.name;
+  renderEditTags();
+  showScreen('projectEditScreen');
+}
+
+function saveProject() {
+  const name = document.getElementById('editProjectName').value.trim();
+  if (!name) { showToast('工事名を入力してください', true); return; }
+  tempProject.name = name;
+  if (editingProjectId) {
+    const idx = projects.findIndex(p => p.id === editingProjectId);
+    if (idx >= 0) projects[idx] = { ...projects[idx], ...tempProject };
+  } else {
+    projects.push({ id: Date.now().toString(), ...tempProject });
+  }
+  saveProjects(); renderProjectList();
+  showScreen('settingsScreen');
+  showToast('✔ 現場を保存しました');
+}
+
+function deleteCurrentProject() {
+  if (!editingProjectId) { backFromProjectEdit(); return; }
+  if (!confirm('この現場を削除しますか？')) return;
+  projects = projects.filter(p => p.id !== editingProjectId);
+  if (config.currentProjectId === editingProjectId) config.currentProjectId = null;
+  saveProjects(); saveConfig(); renderProjectList(); updateHeader();
+  showScreen('settingsScreen');
+  showToast('削除しました');
+}
+
+function backFromProjectEdit() { showScreen('settingsScreen'); }
+
+// ===== アドレス帳 =====
+function showAddressBook() {
+  renderContactList();
+  showScreen('addressBookScreen');
+}
+
+function renderContactList() {
+  const el = document.getElementById('contactList');
+  if (contacts.length === 0) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-sub);font-size:14px;">まだ登録されていません</div>`;
+    return;
+  }
+  el.innerHTML = contacts.map(c => `
+    <div class="contact-card">
+      <div class="contact-avatar">${esc(c.name.charAt(0))}</div>
+      <div class="contact-info">
+        <div class="contact-name">${esc(c.name)}</div>
+        <div class="contact-email">${esc(c.email)}</div>
+      </div>
+      <button class="contact-del-btn" onclick="deleteContact('${c.id}')">×</button>
+    </div>
+  `).join('');
+}
+
+function addContact() {
+  const name  = document.getElementById('newContactName').value.trim();
+  const email = document.getElementById('newContactEmail').value.trim();
+  if (!name)  { showToast('氏名を入力してください', true); return; }
+  if (!email || !email.includes('@')) { showToast('正しいメールアドレスを入力してください', true); return; }
+  contacts.push({ id: Date.now().toString(), name, email });
+  saveContacts();
+  document.getElementById('newContactName').value = '';
+  document.getElementById('newContactEmail').value = '';
+  renderContactList();
+  showToast('✔ 連絡先を追加しました');
+}
+
+function deleteContact(id) {
+  if (!confirm('この連絡先を削除しますか？')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  saveContacts();
+  renderContactList();
+}
+
+// ===== 連絡先選択シート =====
+function openContactSelect(type) {
+  if (contacts.length === 0) {
+    showToast('アドレス帳に連絡先がありません', true);
+    return;
+  }
+  contactSelectType = type;
+  const current = type === 'to' ? tempProject.toEmails : tempProject.ccEmails;
+  contactSelectTemp = [...current];
+  document.getElementById('contactSelectTitle').textContent =
+    `連絡先を選択（${type === 'to' ? 'TO' : 'CC'}）`;
+  renderContactSelectList();
+  document.getElementById('contactSelectSheet').classList.add('show');
+}
+
+function renderContactSelectList() {
+  document.getElementById('contactSelectList').innerHTML = contacts.map(c => {
+    const checked = contactSelectTemp.includes(c.email);
+    return `
+      <div class="contact-select-item" onclick="toggleContactSelect('${c.email}')">
+        <div class="contact-select-check ${checked ? 'checked' : ''}" id="chk-${c.id}">
+          ${checked ? '✓' : ''}
+        </div>
+        <div class="contact-select-info">
+          <div class="contact-select-name">${esc(c.name)}</div>
+          <div class="contact-select-email">${esc(c.email)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleContactSelect(email) {
+  const idx = contactSelectTemp.indexOf(email);
+  if (idx >= 0) contactSelectTemp.splice(idx, 1);
+  else contactSelectTemp.push(email);
+  renderContactSelectList();
+}
+
+function confirmContactSelect() {
+  if (contactSelectType === 'to') tempProject.toEmails = [...contactSelectTemp];
+  else tempProject.ccEmails = [...contactSelectTemp];
+  renderEditTags();
+  document.getElementById('contactSelectSheet').classList.remove('show');
+  showToast(`✔ ${contactSelectTemp.length}件を設定しました`);
+}
+
+function closeContactSelect(e) {
+  if (e.target === document.getElementById('contactSelectSheet'))
+    document.getElementById('contactSelectSheet').classList.remove('show');
+}
+
+// ===== 現場編集：メールタグ =====
+function renderEditTags() {
+  ['to','cc'].forEach(type => {
+    const emails = type === 'to' ? tempProject.toEmails : tempProject.ccEmails;
+    const el = document.getElementById(`edit${type.charAt(0).toUpperCase()+type.slice(1)}Tags`);
+    el.innerHTML = emails.map((e,i) => `
+      <div class="email-tag">
+        <span>${esc(e)}</span>
+        <button class="email-tag-remove" onclick="removeEditEmail('${type}',${i})">×</button>
+      </div>
+    `).join('');
+  });
+}
+
+function addEditEmail(type) {
+  const inputId = type === 'to' ? 'editToInput' : 'editCcInput';
+  const input = document.getElementById(inputId);
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) { showToast('正しいメールアドレスを入力', true); return; }
+  if (type === 'to') tempProject.toEmails.push(email);
+  else               tempProject.ccEmails.push(email);
+  input.value = '';
+  renderEditTags();
+}
+
+function removeEditEmail(type, idx) {
+  if (type === 'to') tempProject.toEmails.splice(idx, 1);
+  else               tempProject.ccEmails.splice(idx, 1);
+  renderEditTags();
+}
+
+// ===== 画面遷移 =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showMain() { showScreen('mainScreen'); }
+
+// ===== UIヘルパー =====
+function setStatus(msg, cls) {
+  const el = document.getElementById('micStatus');
+  el.textContent = msg; el.className = 'mic-status ' + (cls || '');
+}
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
+function flashScreen() {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(255,107,53,0.2);z-index:9999;pointer-events:none;transition:opacity 0.3s;';
+  document.body.appendChild(d);
+  requestAnimationFrame(() => setTimeout(() => { d.style.opacity='0'; setTimeout(()=>d.remove(),300); }, 80));
+}
+
+init();
+setupPWA();
+
+function setupPWA() {
+  function makeIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const r = size * 0.2;
+    const s = size / 80;
+
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
+    ctx.arcTo(size, 0, size, r, r);
+    ctx.lineTo(size, size - r);
+    ctx.arcTo(size, size, size - r, size, r);
+    ctx.lineTo(r, size); ctx.arcTo(0, size, 0, size - r, r);
+    ctx.lineTo(0, r); ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fillStyle = '#1A3A5C';
+    ctx.fill();
+
+    ctx.fillStyle = 'white';
+    const mx = 18*s, my = 18*s, mw = 34*s, mh = 44*s, mr = 4*s;
+    ctx.beginPath();
+    ctx.moveTo(mx+mr, my); ctx.lineTo(mx+mw-mr, my);
+    ctx.arcTo(mx+mw, my, mx+mw, my+mr, mr);
+    ctx.lineTo(mx+mw, my+mh-mr);
+    ctx.arcTo(mx+mw, my+mh, mx+mw-mr, my+mh, mr);
+    ctx.lineTo(mx+mr, my+mh); ctx.arcTo(mx, my+mh, mx, my+mh-mr, mr);
+    ctx.lineTo(mx, my+mr); ctx.arcTo(mx, my, mx+mr, my, mr);
+    ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = '#D1D5DB'; ctx.lineWidth = 2.5*s; ctx.lineCap = 'round';
+    [[24,30,46,30],[24,38,46,38],[24,46,36,46]].forEach(([x1,y1,x2,y2]) => {
+      ctx.beginPath(); ctx.moveTo(x1*s, y1*s); ctx.lineTo(x2*s, y2*s); ctx.stroke();
+    });
+
+    ctx.fillStyle = '#FF6B35';
+    ctx.beginPath(); ctx.arc(56*s, 54*s, 14*s, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(51*s, 49*s);
+    ctx.arcTo(51*s, 44*s, 61*s, 44*s, 5*s);
+    ctx.arcTo(61*s, 44*s, 61*s, 60*s, 5*s);
+    ctx.arcTo(61*s, 60*s, 51*s, 60*s, 5*s);
+    ctx.arcTo(51*s, 60*s, 51*s, 44*s, 5*s);
+    ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 2.5*s; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(48*s, 56*s);
+    ctx.quadraticCurveTo(48*s, 64*s, 56*s, 64*s);
+    ctx.quadraticCurveTo(64*s, 64*s, 64*s, 56*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(56*s, 64*s); ctx.lineTo(56*s, 68*s); ctx.stroke();
+
+    return c.toDataURL('image/png');
+  }
+
+  const icon192 = makeIcon(192);
+  const icon512 = makeIcon(512);
+
+  const link180 = document.createElement('link');
+  link180.rel = 'apple-touch-icon';
+  link180.href = makeIcon(180);
+  document.head.appendChild(link180);
+
+  const manifest = {
+    name: '現場メモAI',
+    short_name: '現場メモ',
+    description: '施工管理向け音声メモアプリ',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#1A3A5C',
+    theme_color: '#1A3A5C',
+    orientation: 'portrait',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png' },
+      { src: icon512, sizes: '512x512', type: 'image/png' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const manifestUrl = URL.createObjectURL(blob);
+  const linkManifest = document.createElement('link');
+  linkManifest.rel = 'manifest';
+  linkManifest.href = manifestUrl;
+  document.head.appendChild(linkManifest);
+}
+</script>
+</body>
+</html>
