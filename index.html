@@ -655,7 +655,7 @@ const KEY_PROJECTS = 'gm_projects';
 const KEY_CONTACTS = 'gm_contacts';
 
 // ===== 状態 =====
-let config = { userName: '', proxyUrl: '', apiKey: '', currentProjectId: null };
+let config = { userName: '', proxyUrl: 'https://genba-memo.hoshikoshi.workers.dev', apiKey: 'built-in', currentProjectId: null };
 let projects = [];  // [{id, name, toEmails[], ccEmails[]}]
 let contacts = [];  // [{id, name, email}]
 let memos = [];     // 当日分
@@ -717,8 +717,7 @@ function checkSafari() {
 }
 
 function checkApiNotice() {
-  document.getElementById('apiNotice').style.display =
-    (!config.proxyUrl || !config.apiKey) ? 'block' : 'none';
+  document.getElementById('apiNotice').style.display = 'none';
 }
 
 // ===== ヘッダー =====
@@ -825,7 +824,7 @@ async function processWithAI(text) {
     try {
       const res = await fetch(config.proxyUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 300,
