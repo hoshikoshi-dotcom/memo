@@ -27,11 +27,19 @@
     html, body {
       height: 100%; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
-      background: var(--bg); color: var(--text); user-select: none;
+      background: #2C3E50; color: var(--text); user-select: none;
     }
 
     /* SCREENS */
-    .screen { display: none; flex-direction: column; height: 100%; position: fixed; inset: 0; }
+    .screen {
+      display: none; flex-direction: column; height: 100%;
+      position: fixed;
+      top: 0; bottom: 0;
+      left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      background: var(--bg);
+      box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    }
     .screen.active { display: flex; }
 
     /* HEADER */
