@@ -427,6 +427,122 @@
     .safari-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
     .safari-box p { font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 14px; }
     .notice-ok { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+    /* ===== DARK MODE ===== */
+    :root {
+      --dm-bg: #1A1A2E; --dm-card: #252540; --dm-text: #E8E8F0;
+      --dm-text-sub: #9090B0; --dm-border: #383860; --dm-primary: #2A4A7C;
+    }
+    body.dark { background: #111122; }
+    body.dark .screen { background: var(--dm-bg); }
+    body.dark .header { background: var(--dm-primary); }
+    body.dark .memo-card { background: var(--dm-card); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .memo-text { color: var(--dm-text); }
+    body.dark .memo-time { color: var(--dm-text-sub); }
+    body.dark .scroll-area { background: var(--dm-bg); }
+    body.dark .bottom-bar { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .s-group { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .s-group-title { background: var(--dm-bg); color: var(--dm-text-sub); border-color: var(--dm-border); }
+    body.dark .s-row { border-color: var(--dm-border); }
+    body.dark .s-input { color: var(--dm-text); }
+    body.dark .settings-scroll { background: var(--dm-bg); }
+    body.dark .sheet { background: var(--dm-card); }
+    body.dark .sheet-item { border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .sheet-item:active { background: var(--dm-bg); }
+    body.dark .modal-sheet { background: var(--dm-card); }
+    body.dark .modal-title { color: var(--dm-text); }
+    body.dark .modal-textarea { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .memo-action-btn { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text-sub); }
+    body.dark .memo-photo-empty { background: var(--dm-bg); border-color: var(--dm-border); }
+    body.dark .section-title { color: var(--dm-text-sub); }
+    body.dark .project-card { border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .project-card:active { background: var(--dm-bg); }
+    body.dark .email-add-input { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .contact-card { border-color: var(--dm-border); }
+    body.dark .contact-name { color: var(--dm-text); }
+    body.dark .raw-text-box { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text-sub); }
+    body.dark .history-item { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .history-item-title { color: var(--dm-text); }
+    body.dark .history-item-sub { color: var(--dm-text-sub); }
+    body.dark .history-detail-body { background: var(--dm-bg); color: var(--dm-text); }
+
+    /* ===== WEATHER BADGE ===== */
+    .weather-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 11px; color: var(--text-sub); margin-left: 8px;
+      background: var(--bg); border-radius: 10px; padding: 2px 7px;
+      border: 1px solid var(--border);
+    }
+
+    /* ===== WAVEFORM ===== */
+    .waveform-container {
+      display: flex; align-items: center; justify-content: center;
+      gap: 3px; height: 32px; margin: 0 8px;
+    }
+    .wave-bar {
+      width: 4px; border-radius: 3px; background: var(--accent);
+      height: 4px; transition: height 0.1s;
+    }
+    .recording .wave-bar:nth-child(1) { animation: wv 0.9s ease-in-out infinite 0.0s; }
+    .recording .wave-bar:nth-child(2) { animation: wv 0.9s ease-in-out infinite 0.1s; }
+    .recording .wave-bar:nth-child(3) { animation: wv 0.9s ease-in-out infinite 0.2s; }
+    .recording .wave-bar:nth-child(4) { animation: wv 0.9s ease-in-out infinite 0.3s; }
+    .recording .wave-bar:nth-child(5) { animation: wv 0.9s ease-in-out infinite 0.15s; }
+    .recording .wave-bar:nth-child(6) { animation: wv 0.9s ease-in-out infinite 0.05s; }
+    .recording .wave-bar:nth-child(7) { animation: wv 0.9s ease-in-out infinite 0.25s; }
+    @keyframes wv {
+      0%,100% { height: 4px; opacity: 0.5; }
+      50% { height: 24px; opacity: 1; }
+    }
+
+    /* ===== SWIPE DELETE ===== */
+    .memo-card { position: relative; overflow: hidden; touch-action: pan-y; }
+    .memo-swipe-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+      background: var(--red); display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 22px; opacity: 0; transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .memo-card-inner { transition: transform 0.2s; }
+
+    /* ===== RAW TEXT ===== */
+    .raw-toggle-btn {
+      font-size: 11px; color: var(--text-sub); background: none; border: none;
+      cursor: pointer; padding: 4px 0; text-decoration: underline;
+    }
+    .raw-text-box {
+      display: none; margin-top: 6px; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 12px; color: var(--text-sub);
+      line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+    }
+    .raw-text-box.open { display: block; }
+    .raw-restore-btn {
+      font-size: 11px; color: var(--accent); background: none; border: none;
+      cursor: pointer; padding: 4px 0 0; font-weight: 700;
+    }
+
+    /* ===== HISTORY SCREEN ===== */
+    .history-item {
+      background: var(--card); border-radius: 12px; padding: 14px;
+      margin-bottom: 8px; border: 1px solid var(--border);
+      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .history-item:active { opacity: 0.75; }
+    .history-item-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .history-item-sub { font-size: 12px; color: var(--text-sub); }
+    .history-detail-body {
+      background: var(--bg); border-radius: 10px; padding: 14px;
+      font-size: 14px; line-height: 1.8; white-space: pre-wrap;
+      word-break: break-all; margin-top: 8px; flex: 1;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .history-photo-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+    }
+    .history-photo-grid img {
+      width: 100%; border-radius: 8px; object-fit: cover; max-height: 150px;
+    }
   </style>
 </head>
 <body>
@@ -452,12 +568,19 @@
       </div>
       <div class="header-date" id="headerDate"></div>
     </div>
+    <button class="icon-btn" id="darkToggleBtn" onclick="toggleDarkMode()" title="ダークモード">🌙</button>
+    <button class="icon-btn" onclick="showHistory()">📋</button>
     <button class="icon-btn" onclick="showSettings()">⚙️</button>
   </div>
 
-  <!-- マイク + カメラ -->
+  <!-- マイク + 波形 + カメラ -->
   <div class="action-section">
     <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎤</button>
+    <div class="waveform-container" id="waveformContainer">
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
     <button class="camera-btn" onclick="addPhotoToLatest()">📷</button>
   </div>
   <div class="mic-status" id="micStatus">タップして録音開始</div>
@@ -599,6 +722,29 @@
   </div>
 </div>
 
+<!-- ===== 履歴画面 ===== -->
+<div id="historyScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showMain()">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;">日報履歴</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="settings-scroll" id="historyList"></div>
+</div>
+
+<!-- ===== 日報詳細画面 ===== -->
+<div id="historyDetailScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('historyScreen')">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;" id="historyDetailTitle"></div>
+    <div style="width:60px;"></div>
+  </div>
+  <div style="padding:14px;display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="history-detail-body" id="historyDetailBody"></div>
+    <div class="history-photo-grid" id="historyDetailPhotos"></div>
+  </div>
+</div>
+
 <!-- ===== 現場選択シート ===== -->
 <div class="sheet-overlay" id="projectSheet" onclick="closeProjectSheet(event)">
   <div class="sheet">
@@ -653,6 +799,8 @@ const KEY_CONFIG   = 'gm_config';
 const KEY_MEMOS    = 'gm_memos';
 const KEY_PROJECTS = 'gm_projects';
 const KEY_CONTACTS = 'gm_contacts';
+const KEY_REPORTS  = 'gm_reports';
+const KEY_DARK     = 'gm_dark';
 
 // ===== 状態 =====
 let config = { userName: '', proxyUrl: 'https://genba-memo.hoshikoshi.workers.dev', apiKey: 'built-in', currentProjectId: null };
@@ -675,10 +823,22 @@ function init() {
   renderMemoList();
   checkApiNotice();
   checkSafari();
+  initDarkMode();
 }
 
+const DEFAULT_PROXY = 'https://genba-memo.hoshikoshi.workers.dev';
+
 function loadAll() {
-  try { const s = localStorage.getItem(KEY_CONFIG);   if(s) config   = {...config,...JSON.parse(s)}; } catch(e){}
+  try {
+    const s = localStorage.getItem(KEY_CONFIG);
+    if (s) {
+      const saved = JSON.parse(s);
+      // proxyUrl・apiKeyが空の場合はデフォルト値を維持
+      if (!saved.proxyUrl) saved.proxyUrl = DEFAULT_PROXY;
+      if (!saved.apiKey)   saved.apiKey   = 'built-in';
+      config = { ...config, ...saved };
+    }
+  } catch(e){}
   try { const s = localStorage.getItem(KEY_PROJECTS); if(s) projects = JSON.parse(s); } catch(e){}
   try { const s = localStorage.getItem(KEY_CONTACTS); if(s) contacts = JSON.parse(s); } catch(e){}
   try {
@@ -771,51 +931,86 @@ function toggleRecording() {
   isRecording ? stopRecording() : startRecording();
 }
 
+let recognitionHadError = false;
+
 function startRecording() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { showToast('音声認識が使えません', true); return; }
-  recognition = new SR();
-  recognition.lang = 'ja-JP';
-  recognition.continuous = false; // iOSはcontinuous非対応のためfalse固定
-  recognition.interimResults = false;
-  transcript = '';
 
-  recognition.onstart = () => {
-    isRecording = true;
-    vibrate([100]); flashScreen();
-    const btn = document.getElementById('micBtn');
-    btn.classList.add('recording'); btn.textContent = '⏹';
-    setStatus('録音中... タップで停止', 'recording');
-  };
-  recognition.onresult = e => {
-    for (let i = e.resultIndex; i < e.results.length; i++)
-      transcript += e.results[i][0].transcript;
-  };
-  recognition.onerror = e => {
-    isRecording = false;
-    const btn = document.getElementById('micBtn');
-    btn.classList.remove('recording'); btn.textContent = '🎤';
-    setStatus('タップして録音開始', '');
-    showToast(e.error === 'not-allowed' ? 'マイクの許可が必要です' : '音声認識エラー', true);
-  };
-  // onend は手動停止・自動停止どちらでも必ず呼ばれる → 常にonRecordEndを実行
-  recognition.onend = () => {
-    isRecording = false;
-    onRecordEnd();
-  };
-  try { recognition.start(); } catch(e) { showToast('録音開始に失敗しました', true); }
+  transcript = '';
+  recognitionHadError = false;
+  isRecording = true;
+  vibrate([100]); flashScreen();
+  const btn = document.getElementById('micBtn');
+  btn.classList.add('recording'); btn.textContent = '⏹';
+  setStatus('録音中... タップで停止', 'recording');
+  document.getElementById('waveformContainer').classList.add('recording');
+
+  function createAndStart() {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ja-JP';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = e => {
+      for (let i = e.resultIndex; i < e.results.length; i++)
+        transcript += e.results[i][0].transcript;
+    };
+
+    recognition.onerror = e => {
+      if (e.error === 'not-allowed') {
+        // マイク許可エラーは致命的 → 停止
+        recognitionHadError = true;
+        isRecording = false;
+        btn.classList.remove('recording'); btn.textContent = '🎤';
+        setStatus('タップして録音開始', '');
+        showToast('マイクの許可が必要です', true);
+      } else if (e.error === 'no-speech') {
+        // 無音検出は無視して再起動（録音継続）
+      } else {
+        recognitionHadError = true;
+      }
+    };
+
+    recognition.onend = () => {
+      if (!isRecording || recognitionHadError) {
+        // 手動停止 or エラー → 処理完了
+        onRecordEnd();
+        return;
+      }
+      // iOSで自動停止した場合 → 再起動して録音継続
+      setTimeout(() => {
+        if (isRecording) {
+          try { createAndStart(); } catch(e) { isRecording = false; onRecordEnd(); }
+        }
+      }, 150);
+    };
+
+    try { recognition.start(); } catch(e) {
+      isRecording = false;
+      btn.classList.remove('recording'); btn.textContent = '🎤';
+      setStatus('タップして録音開始', '');
+      showToast('録音開始に失敗しました', true);
+    }
+  }
+
+  createAndStart();
 }
 
 function stopRecording() {
   isRecording = false;
-  if (recognition) recognition.stop();
-  // onend が発火してonRecordEndを呼ぶ
+  if (recognition) {
+    try { recognition.stop(); } catch(e) { onRecordEnd(); }
+  } else {
+    onRecordEnd();
+  }
 }
 
 function onRecordEnd() {
   vibrate([80,40,80]); flashScreen();
   const btn = document.getElementById('micBtn');
   btn.classList.remove('recording');
+  document.getElementById('waveformContainer').classList.remove('recording');
   if (!transcript.trim()) {
     btn.textContent = '🎤'; setStatus('タップして録音開始', '');
     showToast('音声が認識されませんでした', true); return;
@@ -837,9 +1032,51 @@ async function processWithAI(text) {
           type: 'ai',
           payload: {
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 300,
-            system: '施工管理の現場メモを整理します。音声認識テキストの建設専門用語誤変換を補正し、短い箇条書き（1項目1行、「・」始まり）で出力。余計な説明不要。',
-            messages: [{ role: 'user', content: `現場メモを箇条書きに整形：\n${text}` }]
+            max_tokens: 500,
+            system: `あなたは土木・建築・測量の施工管理専門のメモ整形AIです。
+音声認識で誤変換されやすい建設専門用語を正しく補正し、箇条書きに整形してください。
+
+【出力ルール】
+- 1項目1行、「・」始まり
+- 余計な説明・前置き不要
+- 数値・単位はそのまま維持
+
+【土木用語の補正例】
+えんてい→堰堤、ほうおう→法面保護、のりめん→法面、のりど→法土、もりど→盛土、きりど→切土
+かくはん→撹拌、ぐりこ→グリコ/栗石、えんがん→沿岸、ひっぱり→引張、あっしゅく→圧縮
+どかた→土方、かんきょ→管渠、ますぶた→桝蓋、ようへき→擁壁、ふとんかご→蛇籠（ふとんかご）
+しゃくなんたい→弱軟帯、ちばん→地盤、くいうち→杭打ち、どしゃ→土砂、ちょすいち→貯水池
+こうばい→勾配、えんてい→円堤、すいろ→水路、あんきょ→暗渠、かいきょ→開渠
+ぼうちょう→膨張、ちんか→沈下、どあつ→土圧、すいあつ→水圧、とうすい→透水
+りゅうしゅつ→流出、ちすい→治水、ていぼう→堤防、こうもん→水門、しんしょく→侵食
+
+【建築用語の補正例】
+かたわく→型枠、はいきん→配筋、ちゃくこ→着工、じゅんこ→竣工、かんせい→完成
+てっこつ→鉄骨、てっきん→鉄筋、こんくりーと→コンクリート、さこつ→鎖骨/差し筋
+やねふき→屋根葺き、がいへき→外壁、ないへき→内壁、さくぞう→削孔、あんかー→アンカー
+ぞうせつ→増設、かいしゅう→改修、こうじ→工事、きそ→基礎、くいきそ→杭基礎
+べた基礎→ベタ基礎、どくりつきそ→独立基礎、れんぞくきそ→連続基礎
+はり→梁、はしら→柱、スラブ→スラブ、かべ→壁、ゆか→床
+こうてい→工程、せこう→施工、たちあい→立会、できがた→出来形、ひんしつかんり→品質管理
+あんぜんかんり→安全管理、きょうどしけん→強度試験、つちかぶり→土被り
+
+【測量用語の補正例】
+こうじゅんそくりょう→水準測量、きょりそくりょう→距離測量、かくどそくりょう→角度測量
+びーえむ→BM（水準点）、てぃーぴー→TP（もりかえ点）、あいぴー→IP（中間点）
+ばっくさいと→BS（後視）、ふぉあさいと→FS（前視）、きかいこう→器械高（IH）
+じばんこう→地盤高（GL）、きちてん→既知点、みちてん→未知点
+すいへいかく→水平角、えんちょくかく→鉛直角、きょり→距離
+とらはーす→トラバース、さんかくそくりょう→三角測量、こうすい→降水
+ぎゃくさんかく→逆三角、へいばん→平板、ありだーど→アリダード
+じおいど→ジオイド、ひょうこ→標高、ざひょう→座標、きじゅんてん→基準点
+ていちゃく→定着、ぎゃっきょ→逆距離、とうこうせん→等高線
+
+【工事書類・管理用語】
+しゅっけつちょう→出来高帳、こうていひょう→工程表、にっぽう→日報
+あんぜんにっし→安全日誌、きんむひょう→勤務表、ざいりょうひょう→材料表
+けんさ→検査、しゅんこうけんさ→竣工検査、かんせいけんさ→完成検査
+ちゅうかんけんさ→中間検査、しゃしんかんり→写真管理`,
+            messages: [{ role: 'user', content: `以下の音声認識テキストを建設現場メモとして整形してください：\n${text}` }]
           }
         })
       });
@@ -850,10 +1087,10 @@ async function processWithAI(text) {
   addMemo(result, text);
 }
 
-function addMemo(text, raw) {
+async function addMemo(text, raw) {
   const memo = {
     id: Date.now().toString(), date: todayStr(), time: timeStr(),
-    text, raw, photos: [], tag: null
+    text, raw, photos: [], tag: null, weather: null
   };
   memos.unshift(memo);
   saveMemos();
@@ -862,6 +1099,8 @@ function addMemo(text, raw) {
   btn.classList.remove('processing'); btn.textContent = '🎤';
   setStatus('タップして録音開始', '');
   showToast('✔ 保存しました');
+  // 天気を非同期で取得・追記
+  fetchWeatherAndAttach(memo.id);
 }
 
 // ===== 写真（メインボタン） =====
@@ -880,10 +1119,25 @@ function addPhotoToMemo(memoId) {
   pickPhoto(memoId);
 }
 
+function compressImage(dataUrl, maxW, maxH, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
 function pickPhoto(memoId) {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
-  // capture属性なし → カメラ＋フォトライブラリ両方選択可能
   input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
   document.body.appendChild(input);
   input.onchange = e => {
@@ -891,13 +1145,14 @@ function pickPhoto(memoId) {
     document.body.removeChild(input);
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = async ev => {
+      // 最大1280px・品質0.75に圧縮（メール送信サイズ対策）
+      const compressed = await compressImage(ev.target.result, 1280, 1280, 0.75);
       if (memoId) {
         const idx = memos.findIndex(m => m.id === memoId);
-        if (idx >= 0) { memos[idx].photos = [ev.target.result]; saveMemos(); renderMemoList(); showToast('📷 写真を追加しました'); }
+        if (idx >= 0) { memos[idx].photos = [compressed]; saveMemos(); renderMemoList(); showToast('📷 写真を追加しました'); }
       } else {
-        // 写真のみメモ
-        const memo = { id: Date.now().toString(), date: todayStr(), time: timeStr(), text: '（写真メモ）', raw: '', photos: [ev.target.result], tag: null };
+        const memo = { id: Date.now().toString(), date: todayStr(), time: timeStr(), text: '（写真メモ）', raw: '', photos: [compressed], tag: null };
         memos.unshift(memo); saveMemos(); renderMemoList(); showToast('📷 写真を保存しました');
       }
     };
@@ -918,31 +1173,43 @@ function renderMemoList() {
   // 新しい順（降順）
   const sorted = [...memos].sort((a,b) => b.time.localeCompare(a.time));
   list.innerHTML = sorted.map((m, i) => {
-    const isFirst = i === 0; // 最新メモは最初から展開
-    return `
-    <div class="memo-card" id="card-${m.id}">
-      <!-- 常時表示：時刻＋テキスト -->
-      <div class="memo-meta">
-        <span class="memo-time">🕐 ${m.time}</span>
-        <div class="memo-expand-icons" onclick="toggleMemoDetail('${m.id}')" style="cursor:pointer;padding:4px 0 4px 12px;">
-          ${m.photos.length > 0 ? '<span class="memo-has-photo">📷</span>' : ''}
-          <span class="memo-expand-arrow ${isFirst ? 'open' : ''}" id="arrow-${m.id}">▼</span>
+    const isFirst = i === 0;
+    const weatherBadge = m.weather
+      ? `<span class="weather-badge">${m.weather.icon} ${m.weather.temp}°C</span>` : '';
+    const rawSection = m.raw && m.raw !== m.text ? `
+      <div style="margin-top:6px;">
+        <button class="raw-toggle-btn" onclick="toggleRawText('${m.id}')">📝 AI整形前のテキストを確認</button>
+        <div class="raw-text-box" id="raw-${m.id}">${escHtml(m.raw)}
+          <br><button class="raw-restore-btn" onclick="restoreRaw('${m.id}')">↩ このテキストに戻す</button>
         </div>
-      </div>
-      <div class="memo-text">${escHtml(m.text)}</div>
-      <!-- 展開時のみ表示 -->
-      <div class="memo-detail ${isFirst ? 'open' : ''}" id="detail-${m.id}">
-        ${m.photos.length > 0
-          ? `<div class="memo-photo" style="margin-top:10px;"><img src="${m.photos[0]}" alt="添付写真"></div>`
-          : `<div class="memo-photo-empty" onclick="addPhotoToMemo('${m.id}')">📷 写真を追加</div>`
-        }
-        <div class="memo-actions">
-          <button class="memo-action-btn" onclick="openEdit('${m.id}')">✏️ 編集</button>
-          <button class="memo-action-btn del" onclick="delMemo('${m.id}')">🗑</button>
+      </div>` : '';
+    return `
+    <div class="memo-card" id="card-${m.id}" data-id="${m.id}">
+      <div class="memo-swipe-bg">🗑</div>
+      <div class="memo-card-inner">
+        <div class="memo-meta">
+          <span class="memo-time">🕐 ${m.time}${weatherBadge}</span>
+          <div class="memo-expand-icons" onclick="toggleMemoDetail('${m.id}')" style="cursor:pointer;padding:4px 0 4px 12px;">
+            ${m.photos && m.photos.length > 0 ? '<span class="memo-has-photo">📷</span>' : ''}
+            <span class="memo-expand-arrow ${isFirst ? 'open' : ''}" id="arrow-${m.id}">▼</span>
+          </div>
+        </div>
+        <div class="memo-text">${escHtml(m.text)}</div>
+        <div class="memo-detail ${isFirst ? 'open' : ''}" id="detail-${m.id}">
+          ${m.photos && m.photos.length > 0
+            ? `<div class="memo-photo" style="margin-top:10px;"><img src="${m.photos[0]}" alt="添付写真"></div>`
+            : `<div class="memo-photo-empty" onclick="addPhotoToMemo('${m.id}')">📷 写真を追加</div>`
+          }
+          ${rawSection}
+          <div class="memo-actions">
+            <button class="memo-action-btn" onclick="openEdit('${m.id}')">✏️ 編集</button>
+            <button class="memo-action-btn del" onclick="delMemo('${m.id}')">🗑</button>
+          </div>
         </div>
       </div>
     </div>
   `}).join('');
+  initSwipeDelete();
 }
 
 function toggleMemoDetail(id) {
@@ -1027,6 +1294,8 @@ async function sendDailyReport() {
       })
     });
     if (res.ok) {
+      // 履歴に保存
+      saveReportHistory({ subject, text: bodyText, photos: allPhotos, sentAt: new Date().toISOString() });
       showToast('✔ 日報を送信しました');
     } else {
       const err = await res.text();
@@ -1048,8 +1317,11 @@ function showSettings() {
 }
 function saveSettings() {
   config.userName = document.getElementById('settingUserName').value.trim();
-  config.proxyUrl = document.getElementById('settingProxyUrl').value.trim();
-  config.apiKey   = document.getElementById('settingApiKey').value.trim();
+  const pUrl = document.getElementById('settingProxyUrl').value.trim();
+  const aKey = document.getElementById('settingApiKey').value.trim();
+  // 空欄の場合はデフォルト値を維持
+  config.proxyUrl = pUrl || DEFAULT_PROXY;
+  config.apiKey   = aKey || 'built-in';
   saveConfig(); updateHeader(); checkApiNotice();
   showMain(); showToast('✔ 設定を保存しました');
 }
@@ -1264,6 +1536,134 @@ function flashScreen() {
   d.style.cssText = 'position:fixed;inset:0;background:rgba(255,107,53,0.2);z-index:9999;pointer-events:none;transition:opacity 0.3s;';
   document.body.appendChild(d);
   requestAnimationFrame(() => setTimeout(() => { d.style.opacity='0'; setTimeout(()=>d.remove(),300); }, 80));
+}
+
+// ===== ダークモード =====
+function initDarkMode() {
+  const saved = localStorage.getItem(KEY_DARK);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = saved !== null ? saved === '1' : prefersDark;
+  applyDarkMode(isDark);
+}
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem(KEY_DARK, isDark ? '1' : '0');
+  document.getElementById('darkToggleBtn').textContent = isDark ? '☀️' : '🌙';
+}
+function applyDarkMode(isDark) {
+  document.body.classList.toggle('dark', isDark);
+  document.getElementById('darkToggleBtn').textContent = isDark ? '☀️' : '🌙';
+}
+
+// ===== 天気取得 =====
+const WEATHER_ICONS = { 0:'☀️', 1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌦',82:'⛈',95:'⛈',96:'⛈',99:'⛈' };
+async function fetchWeatherAndAttach(memoId) {
+  try {
+    const pos = await new Promise((res, rej) =>
+      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
+    );
+    const { latitude: lat, longitude: lon } = pos.coords;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current_weather=true`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const cw = data.current_weather;
+    const icon = WEATHER_ICONS[cw.weathercode] || '🌡';
+    const temp = Math.round(cw.temperature);
+    const idx = memos.findIndex(m => m.id === memoId);
+    if (idx >= 0) {
+      memos[idx].weather = { icon, temp };
+      saveMemos();
+      renderMemoList();
+    }
+  } catch(e) { /* 位置情報拒否・オフラインは無視 */ }
+}
+
+// ===== 元テキスト確認・復元 =====
+function toggleRawText(id) {
+  const box = document.getElementById(`raw-${id}`);
+  if (box) box.classList.toggle('open');
+}
+function restoreRaw(id) {
+  const m = memos.find(m => m.id === id);
+  if (!m || !m.raw) return;
+  if (!confirm('AI整形前のテキストに戻しますか？')) return;
+  m.text = m.raw;
+  saveMemos(); renderMemoList();
+  showToast('↩ 元テキストに戻しました');
+}
+
+// ===== スワイプ削除 =====
+function initSwipeDelete() {
+  document.querySelectorAll('.memo-card').forEach(card => {
+    let startX = 0, dx = 0;
+    const inner = card.querySelector('.memo-card-inner');
+    const bg    = card.querySelector('.memo-swipe-bg');
+    const id    = card.dataset.id;
+
+    card.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      dx = 0;
+    }, { passive: true });
+
+    card.addEventListener('touchmove', e => {
+      dx = e.touches[0].clientX - startX;
+      if (dx > 0) { inner.style.transform = ''; bg.style.opacity = 0; return; }
+      const shift = Math.max(dx, -80);
+      inner.style.transform = `translateX(${shift}px)`;
+      bg.style.opacity = Math.min(-shift / 80, 1);
+    }, { passive: true });
+
+    card.addEventListener('touchend', () => {
+      if (dx < -60) {
+        if (confirm('このメモを削除しますか？')) { delMemo(id); return; }
+      }
+      inner.style.transform = '';
+      bg.style.opacity = 0;
+    });
+  });
+}
+
+// ===== 日報履歴 =====
+function saveReportHistory(report) {
+  try {
+    const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+    reports.unshift({ id: Date.now().toString(), ...report });
+    // 最大30件保持
+    if (reports.length > 30) reports.splice(30);
+    localStorage.setItem(KEY_REPORTS, JSON.stringify(reports));
+  } catch(e) {}
+}
+function showHistory() {
+  const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+  const el = document.getElementById('historyList');
+  if (reports.length === 0) {
+    el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-sub);font-size:14px;">まだ送信した日報はありません</div>`;
+  } else {
+    el.innerHTML = reports.map(r => {
+      const d = new Date(r.sentAt);
+      const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const photoCount = r.photos ? r.photos.length : 0;
+      return `<div class="history-item" onclick="showReportDetail('${r.id}')">
+        <div class="history-item-title">${esc(r.subject)}</div>
+        <div class="history-item-sub">送信：${dateStr}${photoCount > 0 ? ` 📷 ${photoCount}枚` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  showScreen('historyScreen');
+}
+function showReportDetail(id) {
+  const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+  const r = reports.find(r => r.id === id);
+  if (!r) return;
+  document.getElementById('historyDetailTitle').textContent = r.subject;
+  document.getElementById('historyDetailBody').textContent = r.text;
+  const photosEl = document.getElementById('historyDetailPhotos');
+  if (r.photos && r.photos.length > 0) {
+    photosEl.innerHTML = r.photos.map(p => `<img src="${p}" alt="写真">`).join('');
+  } else {
+    photosEl.innerHTML = '';
+  }
+  showScreen('historyDetailScreen');
 }
 
 init();
