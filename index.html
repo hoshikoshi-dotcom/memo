@@ -1010,8 +1010,10 @@ function stopRecording() {
 }
 
 function onRecordEnd() {
-  vibrate([80,40,80]); flashScreen();
+  // 致命的エラー（not-allowed等）で既にリセット済みの場合は何もしない
   const btn = document.getElementById('micBtn');
+  if (!btn.classList.contains('recording') && !btn.classList.contains('processing') && btn.textContent === '🎤') return;
+  vibrate([80,40,80]); flashScreen();
   btn.classList.remove('recording');
   document.getElementById('waveformContainer').classList.remove('recording');
   if (!transcript.trim()) {
