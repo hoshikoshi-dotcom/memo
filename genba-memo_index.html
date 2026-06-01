@@ -804,6 +804,7 @@ const KEY_PROJECTS = 'gm_projects';
 const KEY_CONTACTS = 'gm_contacts';
 const KEY_REPORTS  = 'gm_reports';
 const KEY_DARK     = 'gm_dark';
+const KEY_LEARNED  = 'gm_learned';
 
 // ===== 状態 =====
 let config = { userName: '', proxyUrl: 'https://genba-memo.hoshikoshi.workers.dev', apiKey: 'built-in', currentProjectId: null };
@@ -981,10 +982,19 @@ function correctNumbers(text){
   return t;
 }
 
+function loadLearnedCorrections(){
+  try { return JSON.parse(localStorage.getItem(KEY_LEARNED) || '[]'); } catch(e){ return []; }
+}
+
 function correctVoice(text){
   let t = correctNumbers(text);
   VOICE_CORRECTIONS.forEach(pair => {
     if (!Array.isArray(pair) || pair.length !== 2) return;
+    t = t.split(pair[0]).join(pair[1]);
+  });
+  // 学習済み補正を適用
+  loadLearnedCorrections().forEach(pair => {
+    if (!Array.isArray(pair) || pair.length !== 2 || !pair[0]) return;
     t = t.split(pair[0]).join(pair[1]);
   });
   return t;
@@ -1390,9 +1400,49 @@ function saveEdit() {
   const text = document.getElementById('editTextarea').value.trim();
   if (!text) return;
   const idx = memos.findIndex(m => m.id === editingMemoId);
-  if (idx >= 0) { memos[idx].text = text; saveMemos(); renderMemoList(); showToast('✔ 更新しました'); }
+  if (idx >= 0) {
+    const memo = memos[idx];
+    // 元の音声認識テキストと修正後を比較して学習
+    if (memo.raw && memo.raw !== text) {
+      learnCorrection(memo.raw, text);
+    }
+    memos[idx].text = text;
+    saveMemos();
+    renderMemoList();
+    showToast('✔ 更新しました');
+  }
   document.getElementById('editModal').classList.remove('show');
   editingMemoId = null;
+}
+
+function learnCorrection(rawText, correctedText) {
+  // 単語レベルで差分を抽出して保存
+  const rawWords = rawText.trim().split(/[\s・
+]+/);
+  const corrWords = correctedText.trim().split(/[\s・
+]+/);
+  const learned = loadLearnedCorrections();
+  let added = 0;
+  // 長さが近い場合のみ単語対応を試みる
+  if (Math.abs(rawWords.length - corrWords.length) <= 3) {
+    const len = Math.min(rawWords.length, corrWords.length);
+    for (let i = 0; i < len; i++) {
+      const from = rawWords[i], to = corrWords[i];
+      if (from && to && from !== to && from.length > 1) {
+        const exists = learned.some(p => p[0] === from);
+        if (!exists) { learned.push([from, to]); added++; }
+      }
+    }
+  }
+  // 全体テキストも保存（フレーズ一致用）
+  const fullExists = learned.some(p => p[0] === rawText.trim());
+  if (!fullExists && rawText.trim() !== correctedText.trim()) {
+    learned.push([rawText.trim(), correctedText.trim()]);
+    added++;
+  }
+  if (added > 0) {
+    try { localStorage.setItem(KEY_LEARNED, JSON.stringify(learned)); } catch(e){}
+  }
 }
 
 // ===== 削除 =====
