@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1A3A5C">
+  <title>現場メモAI</title>
+  <style>
+    :root {
+      --primary: #1A3A5C;
+      --accent: #FF6B35;
+      --bg: #F4F6F8;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-sub: #6B7280;
+      --border: #E5E7EB;
+      --red: #E53935;
+      --red-light: #FFEBEE;
+      --green: #2E7D32;
+      --green-light: #E8F5E9;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: #2C3E50; color: var(--text); user-select: none;
+    }
+
+    /* SCREENS */
+    .screen {
+      display: none; flex-direction: column; height: 100%;
+      position: fixed;
+      top: 0; bottom: 0;
+      left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      background: var(--bg);
+      box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    }
+    .screen.active { display: flex; }
+
+    /* HEADER */
+    .header {
+      background: var(--primary); color: white;
+      padding: calc(var(--safe-top) + 10px) 12px 10px;
+      display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0;
+    }
+    .header-project {
+      flex: 1; display: flex; flex-direction: column;
+      cursor: pointer; padding: 4px 8px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); min-width: 0;
+    }
+    .header-project:active { background: rgba(255,255,255,0.2); }
+    .header-project-label { font-size: 11px; opacity: 0.7; margin-bottom: 1px; }
+    .header-project-name {
+      font-size: 16px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .header-date { font-size: 11px; opacity: 0.65; margin-top: 1px; }
+    .icon-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.15); color: white;
+      font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-btn:active { background: rgba(255,255,255,0.3); }
+
+    /* MIC + CAMERA */
+    .action-section {
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; padding: 20px 16px 16px; flex-shrink: 0;
+    }
+    .mic-btn {
+      width: 110px; height: 110px; border-radius: 50%; border: none;
+      background: var(--accent); color: white; font-size: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 6px 20px rgba(255,107,53,0.4);
+      transition: transform 0.1s;
+    }
+    .mic-btn:active { transform: scale(0.94); }
+    .mic-btn.recording {
+      background: var(--red);
+      box-shadow: 0 6px 20px rgba(229,57,53,0.5);
+      animation: pulse 1.2s infinite;
+    }
+    .mic-btn.processing {
+      background: var(--primary);
+      box-shadow: 0 6px 20px rgba(26,58,92,0.4);
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 6px 20px rgba(229,57,53,0.5); }
+      50% { box-shadow: 0 6px 36px rgba(229,57,53,0.8), 0 0 0 14px rgba(229,57,53,0.15); }
+    }
+
+    .camera-btn {
+      width: 80px; height: 80px; border-radius: 50%; border: none;
+      background: var(--primary); color: white; font-size: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 4px 14px rgba(26,58,92,0.35);
+      transition: transform 0.1s;
+    }
+    .camera-btn:active { transform: scale(0.94); }
+
+    .mic-status {
+      text-align: center; font-size: 13px; color: var(--text-sub);
+      font-weight: 500; padding: 0 16px 4px; flex-shrink: 0;
+    }
+    .mic-status.recording { color: var(--red); font-weight: 700; }
+    .mic-status.processing { color: var(--primary); }
+
+    /* SCROLL */
+    .scroll-area {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px 14px calc(var(--safe-bottom) + 90px);
+    }
+    .section-title {
+      font-size: 11px; font-weight: 700; color: var(--text-sub);
+      letter-spacing: 0.8px; margin-bottom: 10px; text-transform: uppercase;
+    }
+
+    /* MEMO CARD */
+    .memo-card {
+      background: var(--card); border-radius: 12px; padding: 13px 14px;
+      margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+    }
+    .memo-card:first-child {
+      border-left-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(26,58,92,0.12);
+    }
+    .memo-meta {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+    }
+    .memo-time { font-size: 12px; color: var(--text-sub); font-weight: 700; letter-spacing: 0.3px; }
+    .memo-text {
+      font-size: 15px; line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+      color: var(--text); padding-top: 4px;
+    }
+    .memo-photo { margin-top: 10px; border-radius: 8px; overflow: hidden; }
+    .memo-photo img { width: 100%; max-height: 200px; object-fit: cover; display: block; }
+    .memo-photo-empty {
+      margin-top: 8px; padding: 10px; background: var(--bg);
+      border: 1px dashed var(--border); border-radius: 8px;
+      text-align: center; font-size: 12px; color: var(--text-sub); cursor: pointer;
+    }
+    .memo-photo-empty:active { opacity: 0.7; }
+    /* コンパクトカード展開 */
+    .memo-detail { display: none; }
+    .memo-detail.open { display: block; }
+    .memo-expand-row {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; margin-top: 2px;
+    }
+    .memo-expand-row:active { opacity: 0.7; }
+    .memo-expand-icons { display: flex; gap: 6px; align-items: center; }
+    .memo-has-photo { font-size: 13px; }
+    .memo-expand-arrow { font-size: 13px; color: var(--text-sub); transition: transform 0.2s; }
+    .memo-expand-arrow.open { transform: rotate(180deg); }
+
+    .memo-actions {
+      display: flex; gap: 8px; margin-top: 10px; align-items: center;
+    }
+    .memo-action-btn {
+      font-size: 12px; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text-sub); cursor: pointer; font-weight: 600;
+    }
+    .memo-action-btn:active { opacity: 0.7; }
+    .memo-action-btn.del {
+      color: var(--red); border-color: var(--red-light);
+      background: var(--red-light); margin-left: auto;
+    }
+
+    /* BOTTOM */
+    .bottom-bar {
+      padding: 10px 14px calc(var(--safe-bottom) + 10px);
+      background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .send-btn {
+      width: 100%; padding: 14px; background: var(--primary);
+      color: white; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .send-btn:active { opacity: 0.85; }
+    .send-btn:disabled { background: var(--border); color: var(--text-sub); }
+
+    /* EMPTY */
+    .empty-state { text-align: center; padding: 36px 20px; color: var(--text-sub); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; top: calc(var(--safe-top) + 65px);
+      left: 50%; transform: translateX(-50%) translateY(-10px);
+      background: var(--green); color: white; padding: 10px 20px;
+      border-radius: 24px; font-size: 14px; font-weight: 600;
+      opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; white-space: nowrap; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--red); }
+
+    /* BOTTOM SHEET */
+    .sheet-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end;
+    }
+    .sheet-overlay.show { display: flex; }
+    .sheet {
+      background: var(--card); border-radius: 20px 20px 0 0;
+      padding: 8px 0 calc(var(--safe-bottom) + 8px);
+      width: 100%; max-height: 70vh; overflow-y: auto;
+    }
+    .sheet-handle {
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 8px auto 12px;
+    }
+    .sheet-title {
+      font-size: 13px; font-weight: 700; color: var(--text-sub);
+      padding: 0 16px 8px; letter-spacing: 0.5px;
+    }
+    .sheet-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; cursor: pointer; border-bottom: 1px solid var(--border);
+    }
+    .sheet-item:last-child { border-bottom: none; }
+    .sheet-item:active { background: var(--bg); }
+    .sheet-item-name { flex: 1; font-size: 16px; font-weight: 600; }
+    .sheet-item-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .sheet-item-check { font-size: 20px; color: var(--accent); }
+    .sheet-add-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; cursor: pointer; color: var(--accent);
+    }
+    .sheet-add-btn:active { opacity: 0.7; }
+    .sheet-add-icon { font-size: 22px; }
+    .sheet-add-label { font-size: 16px; font-weight: 700; }
+
+    /* EDIT MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 110; align-items: flex-end;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-sheet {
+      background: var(--card); border-radius: 20px 20px 0 0;
+      padding: 20px 16px calc(var(--safe-bottom) + 20px); width: 100%;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .modal-textarea {
+      width: 100%; min-height: 100px; font-size: 15px; padding: 12px;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-family: inherit; outline: none; resize: none;
+      color: var(--text); line-height: 1.6;
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+    .modal-btn {
+      flex: 1; padding: 13px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .modal-btn.cancel { background: var(--bg); color: var(--text-sub); border: 1px solid var(--border); }
+    .modal-btn.confirm { background: var(--accent); color: white; }
+    .modal-btn:active { opacity: 0.8; }
+
+    /* SETTINGS */
+    .settings-scroll {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 14px; padding-bottom: calc(var(--safe-bottom) + 20px);
+    }
+    .s-group {
+      background: var(--card); border-radius: 12px;
+      margin-bottom: 16px; border: 1px solid var(--border); overflow: hidden;
+    }
+    .s-group-title {
+      font-size: 11px; font-weight: 700; color: var(--text-sub);
+      letter-spacing: 0.8px; padding: 10px 14px 6px;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+    }
+    .s-row { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .s-row:last-child { border-bottom: none; }
+    .s-label { font-size: 11px; color: var(--text-sub); font-weight: 600; margin-bottom: 5px; }
+    .s-input {
+      width: 100%; font-size: 15px; border: none; outline: none;
+      background: transparent; color: var(--text); font-family: inherit;
+    }
+    .s-input::placeholder { color: #C0C4CC; }
+
+    /* PROJECT CARD */
+    .project-card {
+      display: flex; align-items: center; padding: 13px 14px;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .project-card:last-child { border-bottom: none; }
+    .project-card:active { background: var(--bg); }
+    .project-card-info { flex: 1; min-width: 0; }
+    .project-card-name { font-size: 15px; font-weight: 600; }
+    .project-card-emails { font-size: 11px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-edit-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: var(--bg); color: var(--text-sub); font-size: 16px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .project-add-btn {
+      display: flex; align-items: center; gap: 8px; padding: 13px 14px;
+      cursor: pointer; color: var(--accent);
+    }
+    .project-add-btn:active { opacity: 0.7; }
+    .project-add-btn span { font-size: 15px; font-weight: 700; }
+
+    /* EMAIL TAGS */
+    .email-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .email-tag {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 10px; font-size: 13px;
+    }
+    .email-tag-remove {
+      background: none; border: none; color: var(--text-sub);
+      font-size: 14px; cursor: pointer; padding: 0; line-height: 1;
+    }
+    .email-add-row { display: flex; gap: 8px; }
+    .email-add-input {
+      flex: 1; font-size: 14px; padding: 8px 12px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); outline: none; font-family: inherit;
+    }
+    .email-add-btn {
+      padding: 8px 14px; background: var(--accent); color: white;
+      border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .email-add-btn:active { opacity: 0.8; }
+
+    .save-btn {
+      width: 100%; padding: 15px; background: var(--accent); color: white;
+      border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+      cursor: pointer; margin-top: 4px;
+    }
+    .save-btn:active { opacity: 0.85; }
+
+    /* PROJECT EDIT SCREEN */
+    .back-btn {
+      background: none; border: none; color: white;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      padding: 4px 8px; border-radius: 8px; white-space: nowrap;
+    }
+    .back-btn:active { background: rgba(255,255,255,0.2); }
+
+    /* ADDRESS BOOK */
+    .contact-card {
+      display: flex; align-items: center; padding: 12px 14px;
+      border-bottom: 1px solid var(--border); gap: 12px;
+    }
+    .contact-card:last-child { border-bottom: none; }
+    .contact-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--primary); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; flex-shrink: 0;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name { font-size: 15px; font-weight: 600; }
+    .contact-email { font-size: 12px; color: var(--text-sub); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-del-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: var(--red-light); color: var(--red);
+      font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .contact-select-item {
+      display: flex; align-items: center; padding: 13px 16px;
+      border-bottom: 1px solid var(--border); cursor: pointer; gap: 12px;
+    }
+    .contact-select-item:last-child { border-bottom: none; }
+    .contact-select-item:active { background: var(--bg); }
+    .contact-select-check {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .contact-select-check.checked {
+      background: var(--accent); border-color: var(--accent); color: white; font-size: 13px;
+    }
+    .contact-select-info { flex: 1; min-width: 0; }
+    .contact-select-name { font-size: 15px; font-weight: 600; }
+    .contact-select-email { font-size: 12px; color: var(--text-sub); margin-top: 1px; }
+    .select-done-btn {
+      margin: 12px 16px; padding: 13px; background: var(--accent); color: white;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; width: calc(100% - 32px);
+    }
+    .select-done-btn:active { opacity: 0.85; }
+    .addr-nav-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 14px; cursor: pointer;
+    }
+    .addr-nav-btn:active { background: var(--bg); }
+    .addr-nav-label { font-size: 15px; font-weight: 600; }
+    .addr-nav-arrow { font-size: 18px; color: var(--text-sub); }
+
+    /* API NOTICE */
+    .api-notice {
+      background: #FFF8E1; border: 1px solid #FFD54F; border-radius: 10px;
+      padding: 10px 12px; font-size: 12px; color: #5D4037;
+      margin-bottom: 12px; line-height: 1.5;
+    }
+
+    /* SAFARI NOTICE */
+    .safari-notice {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .safari-notice.show { display: flex; }
+    .safari-box {
+      background: var(--card); border-radius: 16px; padding: 24px;
+      text-align: center; max-width: 300px;
+    }
+    .safari-box .icon { font-size: 40px; margin-bottom: 10px; }
+    .safari-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .safari-box p { font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 14px; }
+    .notice-ok { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+    /* ===== DARK MODE ===== */
+    :root {
+      --dm-bg: #1A1A2E; --dm-card: #252540; --dm-text: #E8E8F0;
+      --dm-text-sub: #9090B0; --dm-border: #383860; --dm-primary: #2A4A7C;
+    }
+    body.dark { background: #111122; }
+    body.dark .screen { background: var(--dm-bg); }
+    body.dark .header { background: var(--dm-primary); }
+    body.dark .memo-card { background: var(--dm-card); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .memo-text { color: var(--dm-text); }
+    body.dark .memo-time { color: var(--dm-text-sub); }
+    body.dark .scroll-area { background: var(--dm-bg); }
+    body.dark .bottom-bar { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .s-group { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .s-group-title { background: var(--dm-bg); color: var(--dm-text-sub); border-color: var(--dm-border); }
+    body.dark .s-row { border-color: var(--dm-border); }
+    body.dark .s-input { color: var(--dm-text); }
+    body.dark .settings-scroll { background: var(--dm-bg); }
+    body.dark .sheet { background: var(--dm-card); }
+    body.dark .sheet-item { border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .sheet-item:active { background: var(--dm-bg); }
+    body.dark .modal-sheet { background: var(--dm-card); }
+    body.dark .modal-title { color: var(--dm-text); }
+    body.dark .modal-textarea { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .memo-action-btn { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text-sub); }
+    body.dark .memo-photo-empty { background: var(--dm-bg); border-color: var(--dm-border); }
+    body.dark .section-title { color: var(--dm-text-sub); }
+    body.dark .project-card { border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .project-card:active { background: var(--dm-bg); }
+    body.dark .email-add-input { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text); }
+    body.dark .contact-card { border-color: var(--dm-border); }
+    body.dark .contact-name { color: var(--dm-text); }
+    body.dark .raw-text-box { background: var(--dm-bg); border-color: var(--dm-border); color: var(--dm-text-sub); }
+    body.dark .history-item { background: var(--dm-card); border-color: var(--dm-border); }
+    body.dark .history-item-title { color: var(--dm-text); }
+    body.dark .history-item-sub { color: var(--dm-text-sub); }
+    body.dark .history-detail-body { background: var(--dm-bg); color: var(--dm-text); }
+
+    /* ===== WEATHER BADGE ===== */
+    .weather-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 11px; color: var(--text-sub); margin-left: 8px;
+      background: var(--bg); border-radius: 10px; padding: 2px 7px;
+      border: 1px solid var(--border);
+    }
+
+    /* ===== WAVEFORM ===== */
+    .waveform-container {
+      display: flex; align-items: center; justify-content: center;
+      gap: 3px; height: 32px; margin: 0 8px;
+    }
+    .wave-bar {
+      width: 4px; border-radius: 3px; background: var(--accent);
+      height: 4px; transition: height 0.1s;
+    }
+    .recording .wave-bar:nth-child(1) { animation: wv 0.9s ease-in-out infinite 0.0s; }
+    .recording .wave-bar:nth-child(2) { animation: wv 0.9s ease-in-out infinite 0.1s; }
+    .recording .wave-bar:nth-child(3) { animation: wv 0.9s ease-in-out infinite 0.2s; }
+    .recording .wave-bar:nth-child(4) { animation: wv 0.9s ease-in-out infinite 0.3s; }
+    .recording .wave-bar:nth-child(5) { animation: wv 0.9s ease-in-out infinite 0.15s; }
+    .recording .wave-bar:nth-child(6) { animation: wv 0.9s ease-in-out infinite 0.05s; }
+    .recording .wave-bar:nth-child(7) { animation: wv 0.9s ease-in-out infinite 0.25s; }
+    @keyframes wv {
+      0%,100% { height: 4px; opacity: 0.5; }
+      50% { height: 24px; opacity: 1; }
+    }
+
+    /* ===== SWIPE DELETE ===== */
+    .memo-card { position: relative; overflow: hidden; touch-action: pan-y; }
+    .memo-swipe-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+      background: var(--red); display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 22px; opacity: 0; transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .memo-card-inner { transition: transform 0.2s; }
+
+    /* ===== RAW TEXT ===== */
+    .raw-toggle-btn {
+      font-size: 11px; color: var(--text-sub); background: none; border: none;
+      cursor: pointer; padding: 4px 0; text-decoration: underline;
+    }
+    .raw-text-box {
+      display: none; margin-top: 6px; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 12px; color: var(--text-sub);
+      line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+    }
+    .raw-text-box.open { display: block; }
+    .raw-restore-btn {
+      font-size: 11px; color: var(--accent); background: none; border: none;
+      cursor: pointer; padding: 4px 0 0; font-weight: 700;
+    }
+
+    /* ===== HISTORY SCREEN ===== */
+    .history-item {
+      background: var(--card); border-radius: 12px; padding: 14px;
+      margin-bottom: 8px; border: 1px solid var(--border);
+      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .history-item:active { opacity: 0.75; }
+    .history-item-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .history-item-sub { font-size: 12px; color: var(--text-sub); }
+    .history-detail-body {
+      background: var(--bg); border-radius: 10px; padding: 14px;
+      font-size: 14px; line-height: 1.8; white-space: pre-wrap;
+      word-break: break-all; margin-top: 8px; flex: 1;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .history-photo-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+    }
+    .history-photo-grid img {
+      width: 100%; border-radius: 8px; object-fit: cover; max-height: 150px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== メイン画面 ===== -->
+<div id="mainScreen" class="screen active">
+  <div class="header">
+    <svg width="38" height="38" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:9px;">
+      <rect width="80" height="80" rx="18" fill="#0F2540"/>
+      <rect x="18" y="18" width="34" height="44" rx="4" fill="white"/>
+      <line x1="24" y1="30" x2="46" y2="30" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="24" y1="38" x2="46" y2="38" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="24" y1="46" x2="36" y2="46" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="56" cy="54" r="14" fill="#FF6B35"/>
+      <rect x="51" y="44" width="10" height="16" rx="5" fill="white"/>
+      <path d="M48 56 Q48 64 56 64 Q64 64 64 56" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <line x1="56" y1="64" x2="56" y2="68" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div class="header-project" onclick="showProjectSheet()">
+      <div class="header-project-label">現場</div>
+      <div class="header-project-name">
+        <span id="headerProjectName">現場を選択 ▼</span>
+      </div>
+      <div class="header-date" id="headerDate"></div>
+    </div>
+    <button class="icon-btn" id="darkToggleBtn" onclick="toggleDarkMode()" title="ダークモード">🌙</button>
+    <button class="icon-btn" onclick="showHistory()">📋</button>
+    <button class="icon-btn" onclick="showSettings()">⚙️</button>
+  </div>
+
+  <!-- マイク + 波形 + カメラ -->
+  <div class="action-section">
+    <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎤</button>
+    <div class="waveform-container" id="waveformContainer">
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+    <button class="camera-btn" onclick="addPhotoToLatest()">📷</button>
+  </div>
+  <div class="mic-status" id="micStatus">タップして録音開始</div>
+
+  <div class="scroll-area">
+    <div id="apiNotice" class="api-notice" style="display:none;">
+      ⚙️ <strong>設定が必要です：</strong>設定画面でClaudeプロキシURLを入力するとAI整形が有効になります。
+    </div>
+    <div class="section-title" id="memoDateLabel"></div>
+    <div id="memoList"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="send-btn" id="sendBtn" onclick="sendDailyReport()" disabled>
+      📩 日報メール送信
+    </button>
+  </div>
+</div>
+
+<!-- ===== 設定画面 ===== -->
+<div id="settingsScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showMain()">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;">設定</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="settings-scroll">
+    <!-- autocomplete=off でiOSキーチェーン反応を抑制 -->
+    <input type="text" style="display:none;" autocomplete="username" />
+    <input type="password" style="display:none;" autocomplete="new-password" />
+
+    <div class="s-group">
+      <div class="s-group-title">担当者</div>
+      <div class="s-row">
+        <div class="s-label">氏名・所属</div>
+        <input class="s-input" id="settingUserName" type="text" placeholder="施工管理 山田太郎" />
+      </div>
+    </div>
+
+    <div class="s-group">
+      <div class="s-group-title">API設定</div>
+      <div class="s-row">
+        <div class="s-label">ClaudeプロキシURL</div>
+        <input class="s-input" id="settingProxyUrl" type="url" autocomplete="off" placeholder="https://your-worker.workers.dev" />
+      </div>
+      <div class="s-row">
+        <div class="s-label">APIキー</div>
+        <input class="s-input" id="settingApiKey" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="（変更不要）" />
+      </div>
+    </div>
+
+    <div class="s-group">
+      <div class="s-group-title">現場一覧</div>
+      <div id="projectList"></div>
+      <div class="project-add-btn" onclick="newProject()">
+        <span style="font-size:22px;line-height:1;">＋</span>
+        <span>現場を追加</span>
+      </div>
+    </div>
+
+    <div class="s-group">
+      <div class="s-group-title">アドレス帳</div>
+      <div class="addr-nav-btn" onclick="showAddressBook()">
+        <span class="addr-nav-label">👥 連絡先を管理</span>
+        <span class="addr-nav-arrow">›</span>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveSettings()">保存</button>
+  </div>
+</div>
+
+<!-- ===== アドレス帳画面 ===== -->
+<div id="addressBookScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('settingsScreen')">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;">アドレス帳</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="settings-scroll">
+    <div class="s-group">
+      <div class="s-group-title">新規追加</div>
+      <div class="s-row">
+        <div class="s-label">氏名</div>
+        <input class="s-input" id="newContactName" type="text" placeholder="監督員 鈴木一郎" />
+      </div>
+      <div class="s-row">
+        <div class="s-label">メールアドレス</div>
+        <input class="s-input" id="newContactEmail" type="email" placeholder="suzuki@example.com" />
+      </div>
+    </div>
+    <button class="save-btn" style="margin-bottom:16px;" onclick="addContact()">＋ 追加</button>
+    <div class="s-group">
+      <div class="s-group-title">登録済み連絡先</div>
+      <div id="contactList"><div style="padding:20px;text-align:center;color:var(--text-sub);font-size:14px;">まだ登録されていません</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 現場編集画面 ===== -->
+<div id="projectEditScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="backFromProjectEdit()">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;" id="projectEditTitle">現場を追加</div>
+    <button class="back-btn" style="color:#FF6B35;" onclick="deleteCurrentProject()">削除</button>
+  </div>
+  <div class="settings-scroll">
+
+    <div class="s-group">
+      <div class="s-group-title">現場情報</div>
+      <div class="s-row">
+        <div class="s-label">工事名</div>
+        <input class="s-input" id="editProjectName" type="text" placeholder="○○新築工事" />
+      </div>
+    </div>
+
+    <div class="s-group">
+      <div class="s-group-title">送信先（TO）</div>
+      <div class="s-row">
+        <div class="email-tags" id="editToTags"></div>
+        <button class="email-add-btn" style="width:100%;margin-bottom:8px;padding:10px;" onclick="openContactSelect('to')">👥 アドレス帳から選択</button>
+        <div class="email-add-row">
+          <input class="email-add-input" id="editToInput" type="email" placeholder="直接入力" />
+          <button class="email-add-btn" onclick="addEditEmail('to')">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="s-group">
+      <div class="s-group-title">CC</div>
+      <div class="s-row">
+        <div class="email-tags" id="editCcTags"></div>
+        <button class="email-add-btn" style="width:100%;margin-bottom:8px;padding:10px;" onclick="openContactSelect('cc')">👥 アドレス帳から選択</button>
+        <div class="email-add-row">
+          <input class="email-add-input" id="editCcInput" type="email" placeholder="直接入力" />
+          <button class="email-add-btn" onclick="addEditEmail('cc')">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveProject()">この現場を保存</button>
+  </div>
+</div>
+
+<!-- ===== 履歴画面 ===== -->
+<div id="historyScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showMain()">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;">日報履歴</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="settings-scroll" id="historyList"></div>
+</div>
+
+<!-- ===== 日報詳細画面 ===== -->
+<div id="historyDetailScreen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('historyScreen')">← 戻る</button>
+    <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:white;" id="historyDetailTitle"></div>
+    <div style="width:60px;"></div>
+  </div>
+  <div style="padding:14px;display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="history-detail-body" id="historyDetailBody"></div>
+    <div class="history-photo-grid" id="historyDetailPhotos"></div>
+  </div>
+</div>
+
+<!-- ===== 現場選択シート ===== -->
+<div class="sheet-overlay" id="projectSheet" onclick="closeProjectSheet(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">現場を選択</div>
+    <div id="projectSheetList"></div>
+    <div class="sheet-add-btn" onclick="closeSheetAndAddProject()">
+      <span class="sheet-add-icon">＋</span>
+      <span class="sheet-add-label">現場を追加</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 連絡先選択シート ===== -->
+<div class="sheet-overlay" id="contactSelectSheet" onclick="closeContactSelect(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="contactSelectTitle">連絡先を選択（TO）</div>
+    <div id="contactSelectList"></div>
+    <button class="select-done-btn" onclick="confirmContactSelect()">選択を確定</button>
+  </div>
+</div>
+
+<!-- ===== 編集モーダル ===== -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-title">メモを編集</div>
+    <textarea class="modal-textarea" id="editTextarea" rows="5"></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeEditModal()">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== トースト ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== Safari通知 ===== -->
+<div class="safari-notice" id="safariNotice">
+  <div class="safari-box">
+    <div class="icon">🌐</div>
+    <h3>Safariで開いてください</h3>
+    <p>音声入力にはSafariの通常モードが必要です。プライベートブラウズをOFFにしてください。</p>
+    <button class="notice-ok" onclick="document.getElementById('safariNotice').classList.remove('show')">わかりました</button>
+  </div>
+</div>
+
+<script>
+// ===== ストレージキー =====
+const KEY_CONFIG   = 'gm_config';
+const KEY_MEMOS    = 'gm_memos';
+const KEY_PROJECTS = 'gm_projects';
+const KEY_CONTACTS = 'gm_contacts';
+const KEY_REPORTS  = 'gm_reports';
+const KEY_DARK     = 'gm_dark';
+
+// ===== 状態 =====
+let config = { userName: '', proxyUrl: 'https://genba-memo.hoshikoshi.workers.dev', apiKey: 'built-in', currentProjectId: null };
+let projects = [];  // [{id, name, toEmails[], ccEmails[]}]
+let contacts = [];  // [{id, name, email}]
+let memos = [];     // 当日分
+let isRecording = false;
+let recognition = null;
+let transcript = '';
+let editingMemoId = null;
+let editingProjectId = null; // null=新規
+let tempProject = { name: '', toEmails: [], ccEmails: [] };
+let contactSelectType = 'to'; // 'to' or 'cc'
+let contactSelectTemp = [];   // 選択中のemails
+
+// ========================================
+// 音声認識 誤変換補正辞書（土木・建設・測量）
+// ========================================
+const VOICE_CORRECTIONS=[
+  ['こんまいちご','0.15'],['ゼロてんいちご','0.15'],['れいてんいちご','0.15'],
+  ['こんまにご','0.25'],['ゼロてんにご','0.25'],['れいてんにご','0.25'],
+  ['こんまよんご','0.45'],['ゼロてんよんご','0.45'],['れいてんよんご','0.45'],
+  ['こんまなな','0.7'],['ゼロてんなな','0.7'],['れいてんなな','0.7'],
+  ['こんまはち','0.8'],['ゼロてんはち','0.8'],
+  ['こんまいち','0.1'],['ゼロてんいち','0.1'],
+  ['こんまに','0.2'],['ゼロてんに','0.2'],
+  ['こんまさん','0.3'],['ゼロてんさん','0.3'],
+  ['こんまよん','0.4'],['ゼロてんよん','0.4'],
+  ['こんまご','0.5'],['ゼロてんご','0.5'],
+  ['いちてんご','1.5'],['いちてんよん','1.4'],['いちてんはち','1.8'],
+  ['にてんご','2.5'],['さんてんご','3.5'],
+  ['りゅうべい','m3'],['りっぽうめーとる','m3'],['りゅうべえ','m3'],
+  ['へいほうめーとる','m2'],['へいべい','m2'],
+  ['にじゅうごとん','25t'],['じゅうとん','10t'],['いちびゃくとん','100t'],
+  ['ごじゅうとん','50t'],['さんじゅうごとん','35t'],['ごとん','5t'],
+  // 重機・建設機械
+  ['バックホーで','バックホウで'],['バックホーを','バックホウを'],
+  ['バックホーが','バックホウが'],['バックホー','バックホウ'],
+  ['バック法','バックホウ'],['バック保','バックホウ'],['バックほ','バックホウ'],
+  ['ブルドーザ','ブルドーザー'],['モーターグレーター','モーターグレーダー'],['モタグレ','モーターグレーダー'],
+  ['転倒機','転圧機'],['点圧機','転圧機'],['添付機','転圧機'],['てんあつき','転圧機'],
+  ['ランマ','ランマー'],['ラフター','ラフテレーンクレーン'],
+  ['こうしょさぎょうしゃ','高所作業車'],['たいやしょべる','タイヤショベル'],['みきさーしゃ','ミキサー車'],
+  // 土工・掘削
+  ['堀削','掘削'],['ほりさく','掘削'],['くっさく','掘削'],
+  ['床掘り','床掘'],['とこぼり','床掘'],['うめもどし','埋め戻し'],
+  ['締め固','締め固め'],['閉め固め','締め固め'],['しめかため','締め固め'],
+  ['土めど','土留め'],['どどめ','土留め'],['どとめ','土留め'],
+  ['やまどめ','山留め'],['はらおこし','腹起し'],['腹起','腹起し'],
+  ['切り梁','切梁'],['きりばり','切梁'],
+  ['鋼矢形','鋼矢板'],['鋼矢版','鋼矢板'],['こうやいた','鋼矢板'],
+  ['矢形','矢板'],['矢版','矢板'],['やいた','矢板'],
+  ['法目','法面'],['のり目','法面'],['乗り面','法面'],['のりめん','法面'],
+  ['のりかた','法肩'],['のりじり','法尻'],['のりこうばい','法勾配'],
+  // コンクリート・型枠
+  ['こんくりーと','コンクリート'],['コンクリ','コンクリート'],
+  ['なまこん','生コン'],['すらんぷ','スランプ'],
+  ['かたわくしほこう','型枠支保工'],['かたわく','型枠'],['しほこう','支保工'],
+  ['ばいぶれーたー','バイブレーター'],['バイブ','バイブレーター'],
+  ['ようじょう','養生'],['だせつ','打設'],
+  // 鉄筋・鋼材
+  ['てっきん','鉄筋'],['しゅきん','主筋'],['おびきん','帯筋'],
+  ['かぶりあつ','かぶり厚'],['つぎて','継手'],
+  ['てっこつ','鉄骨'],['えっちこう','H鋼'],
+  ['こうかんくい','鋼管杭'],['きせいくい','既製杭'],
+  ['デー10','D10'],['デー13','D13'],['デー16','D16'],
+  ['デー19','D19'],['デー22','D22'],['デー25','D25'],
+  // 道路・舗装
+  ['明日はると','アスファルト'],['明日晴ると','アスファルト'],['明日春と','アスファルト'],
+  ['あすはると','アスファルト'],['アスはると','アスファルト'],
+  ['舗層','舗装'],['ほそう','舗装'],['ほしょう','舗装'],
+  ['露板','路盤'],['ろ版','路盤'],['路版','路盤'],['ろばん','路盤'],
+  ['露床','路床'],['ろしょう','路床'],['炉面','路面'],['路麺','路面'],['ろめん','路面'],
+  ['延石','縁石'],['えん石','縁石'],['えんせき','縁石'],
+  ['復興版','覆工板'],['伏せ工板','覆工板'],['復興板','覆工板'],['ふくこうばん','覆工板'],
+  ['くかくせん','区画線'],['カラコン','カラーコーン'],['がーどれーる','ガードレール'],
+  // 排水・管路
+  ['側口','側溝'],['そっこう','側溝'],['そくこう','側溝'],
+  ['集水増','集水桝'],['集水升','集水桝'],['しゅうすいます','集水桝'],
+  ['暗きょ','暗渠'],['あんきょ','暗渠'],
+  ['まんほーる','マンホール'],['ひゅーむかん','ヒューム管'],['えんびかん','塩ビ管'],
+  ['ふせつ','布設'],
+  // 足場・仮設
+  ['わくぐみあしば','枠組足場'],['たんかんあしば','単管足場'],
+  ['てすり','手すり'],['はばき','幅木'],['たんかん','単管'],['くらんぷ','クランプ'],
+  // 測量
+  ['丁はり','丁張り'],['丁張','丁張り'],['ちょうはり','丁張り'],
+  ['やり方を','遣り方を'],['やりかた','遣り方'],
+  ['てぃーえす','トータルステーション'],
+  ['すいじゅんそくりょう','水準測量'],['ひょうこうさ','標高差'],['ひょうこう','標高'],
+  ['じーえる','GL'],['じばんこう','地盤高'],['せっけいこう','設計高'],
+  ['もりど','盛土'],['盛り土','盛土'],
+  ['きじゅんてん','基準点'],['ざひょう','座標'],
+  ['くいうち','杭打ち'],['しんだし','芯出し'],['とおりしん','通り芯'],['のちょう','野帳'],
+  // 安全管理
+  ['染色半径','旋回半径'],['旋回はんけい','旋回半径'],['せんかいはんけい','旋回半径'],
+  ['かたかわこうご','片側交互通行'],
+  ['誘導賞','誘導員'],['誘導いん','誘導員'],['ゆうどういん','誘導員'],
+  ['加工線','架空線'],['かくうせん','架空線'],['架空戦','架空線'],
+  ['あんぜんたい','安全帯'],['はーねす','フルハーネス'],
+  ['へるめっと','ヘルメット'],['あんぜんぐつ','安全靴'],['おやつな','親綱'],
+  ['ばりけーど','バリケード'],['たちいりきんし','立入禁止'],['ほあんとう','保安灯'],
+  ['ねっちゅうしょう','熱中症'],['熱射病','熱中症'],['日射病','熱中症'],
+  ['てぃーびーえむ','TBM'],['けーわい','KY'],['ひやりはっと','ヒヤリハット'],
+  // 地盤・埋設物・交通
+  ['なんじゃくじばん','軟弱地盤'],['ゆうすい','湧水'],['わきみず','湧水'],
+  ['されき','砂礫'],['がんばん','岩盤'],
+  ['がすかん','ガス管'],['まいせつぶつ','埋設物'],
+  ['こうつうきせい','交通規制'],['こうさてん','交差点'],
+  ['ほこうしゃつうろ','歩行者通路'],['おうだんほどう','横断歩道'],
+  // 重機規格・合材・砕石
+  ['くろーらーくれーん','クローラークレーン'],
+  ['ふぃにっしゃー','アスファルトフィニッシャー'],['フィニッシャー','アスファルトフィニッシャー'],
+  ['せっさくき','路面切削機'],
+  ['さいせき','砕石'],['くらっしゃーらん','クラッシャーラン'],
+  ['あーるしーよんじゅう','RC-40'],['えむさんじゅう','M-30'],['えむよんじゅう','M-40'],
+  ['やまずな','山砂'],['かわずな','川砂'],['ごうはん','合板'],['こんぱね','コンパネ'],
+  // 生コン規格
+  ['よびきょうどさんじゅう','呼び強度30'],['よびきょうどにじゅうし','呼び強度24'],
+  ['よびきょうどにじゅういち','呼び強度21'],['よびきょうどにじゅうなな','呼び強度27'],
+  ['AE剤','AE剤'],['えーいーざい','AE剤'],['げんすいざい','減水剤'],
+  ['みずせめんとひ','水セメント比'],
+  // アスファルト合材
+  ['みつりゅうど','密粒度'],['あらりゅうど','粗粒度'],['さいりゅうど','細粒度'],
+  ['かいしつあすこん','改質アスファルト混合物'],
+  ['ぷらいむこーと','プライムコート'],['たっくこーと','タックコート'],
+  ['しきならしおんど','敷きならし温度'],['てんあつおんど','転圧温度'],
+  // 工事種別
+  ['かいさくこうじ','開削工事'],['改策工事','開削工事'],['がいさくこうじ','開削工事'],
+  ['くっさくこうじ','掘削工事'],['もりどこうじ','盛土工事'],
+  ['どうろかいりょうこうじ','道路改良工事'],['きょうりょうこうじ','橋梁工事'],
+  ['かせんこうじ','河川工事'],['ごがんこうじ','護岸工事'],
+  ['げすいどうこうじ','下水道工事'],['すいしんこうじ','推進工事'],
+  ['じばんかいりょうこうじ','地盤改良工事'],
+  // 検査・品質管理（誤認識事例）
+  ['できがたけんそく','出来形検測'],['でき形けんそく','出来形検測'],
+  ['できかたけんそく','出来形検測'],['できがたけいそく','出来形検測'],
+  ['出来高検測','出来形検測'],['出来形計測','出来形検測'],
+  ['へいたんせいしけん','平坦性試験'],['平板性試験','平坦性試験'],
+  ['へいばんせいしけん','平坦性試験'],['平担性試験','平坦性試験'],
+  ['こあさいしゅ','コア採取'],['あすふぁるとこあ','アスファルトコア採取'],['コア再取','コア採取'],
+  ['ぷるーふろーりんぐ','プルーフローリング'],['ぷるーふろーる','プルーフローリング'],
+  ['あーるあいしけん','RI試験'],['あーるあいそくてい','RI測定'],
+  ['ひらばんしけん','平板載荷試験'],['すなおきかえ','砂置換法'],
+  ['あーるあい','RI計器'],
+  // 作業マスター
+  ['やりかたせっち','遣り方設置'],['ちょうはりせっち','丁張り設置'],
+  ['のりめんせいけい','法面整形'],['のりめんぼご','法面保護工'],
+  ['ろばんせいせい','路盤整正'],['ろしょうせいせい','路床整正'],
+  ['しきならしてんあつ','敷きならし・転圧'],
+  ['かたわくくみたて','型枠組立'],['かたわくかいたい','型枠解体'],
+  ['てっきんくみたて','鉄筋組立'],['すてこん','捨てコンクリート'],
+  ['ぐらうとちゅうにゅう','グラウト注入'],
+  ['すいじゅんそくりょうさぎょう','水準測量作業'],['おうだんそくりょう','横断測量'],
+  ['じゅうだんそくりょう','縦断測量'],
+  ['あんぜんちょうれい','安全朝礼'],['きけんよちかつどう','危険予知活動'],
+  ['あんぜんぱとろーる','安全パトロール'],
+  // 会社名
+  ['コウブケンセツ','幸武建設'],['こうぶけんせつ','幸武建設'],['幸武','幸武建設'],
+];
+
+function correctNumbers(text){
+  let t = text;
+  const bh = '(バックホウ|バックほう|バックホー)';
+  t = t.replace(new RegExp(bh+'\\s*(こんまよんご|ゼロてんよんご|れいてんよんご)','g'), 'バックホウ0.45');
+  t = t.replace(new RegExp(bh+'\\s*(こんまにご|ゼロてんにご|れいてんにご)','g'), 'バックホウ0.25');
+  t = t.replace(new RegExp(bh+'\\s*(こんまいちご|ゼロてんいちご|れいてんいちご)','g'), 'バックホウ0.15');
+  t = t.replace(new RegExp(bh+'\\s*(こんまなな|ゼロてんなな|れいてんなな)','g'), 'バックホウ0.7');
+  t = t.replace(/(クレーン|くれーん)\s*(にじゅうごとん)/g, 'クレーン25t');
+  t = t.replace(/(クレーン|くれーん)\s*(じゅうとん)/g, 'クレーン10t');
+  t = t.replace(/(深さ|ふかさ)\s*(にてんご)/g, '深さ2.5m');
+  t = t.replace(/(深さ|ふかさ)\s*(さんてんご)/g, '深さ3.5m');
+  t = t.replace(/(\d+\.?\d*)\s*(りゅうべい|りっぽうめーとる)/g, '$1m3');
+  t = t.replace(/の(0\.\d+)/g, '$1');
+  return t;
+}
+
+function correctVoice(text){
+  let t = correctNumbers(text);
+  VOICE_CORRECTIONS.forEach(pair => {
+    if (!Array.isArray(pair) || pair.length !== 2) return;
+    t = t.split(pair[0]).join(pair[1]);
+  });
+  return t;
+}
+
+
+// ===== 初期化 =====
+function init() {
+  loadAll();
+  updateHeader();
+  renderMemoList();
+  checkApiNotice();
+  checkSafari();
+  initDarkMode();
+}
+
+const DEFAULT_PROXY = 'https://genba-memo.hoshikoshi.workers.dev';
+
+function loadAll() {
+  try {
+    const s = localStorage.getItem(KEY_CONFIG);
+    if (s) {
+      const saved = JSON.parse(s);
+      // proxyUrl・apiKeyが空の場合はデフォルト値を維持
+      if (!saved.proxyUrl) saved.proxyUrl = DEFAULT_PROXY;
+      if (!saved.apiKey)   saved.apiKey   = 'built-in';
+      config = { ...config, ...saved };
+    }
+  } catch(e){}
+  try { const s = localStorage.getItem(KEY_PROJECTS); if(s) projects = JSON.parse(s); } catch(e){}
+  try { const s = localStorage.getItem(KEY_CONTACTS); if(s) contacts = JSON.parse(s); } catch(e){}
+  try {
+    const s = localStorage.getItem(KEY_MEMOS);
+    memos = s ? JSON.parse(s).filter(m => m.date === todayStr()) : [];
+  } catch(e){ memos = []; }
+}
+
+function saveConfig()   { try{ localStorage.setItem(KEY_CONFIG,   JSON.stringify(config));   }catch(e){} }
+function saveProjects() { try{ localStorage.setItem(KEY_PROJECTS, JSON.stringify(projects)); }catch(e){} }
+function saveContacts() { try{ localStorage.setItem(KEY_CONTACTS, JSON.stringify(contacts)); }catch(e){} }
+function saveMemos()    { try{ localStorage.setItem(KEY_MEMOS,    JSON.stringify(memos));    }catch(e){} }
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function timeStr() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function dateLabel() {
+  const d = new Date();
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function currentProject() {
+  return projects.find(p => p.id === config.currentProjectId) || null;
+}
+
+function checkSafari() {
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (!isSafari) return;
+  try { localStorage.setItem('_t','1'); localStorage.removeItem('_t'); }
+  catch(e) { document.getElementById('safariNotice').classList.add('show'); }
+}
+
+function checkApiNotice() {
+  document.getElementById('apiNotice').style.display = 'none';
+}
+
+// ===== ヘッダー =====
+function updateHeader() {
+  const proj = currentProject();
+  document.getElementById('headerProjectName').textContent =
+    proj ? proj.name + ' ▼' : '現場を選択 ▼';
+  document.getElementById('headerDate').textContent = dateLabel();
+  document.getElementById('memoDateLabel').textContent = `本日のメモ（${dateLabel()}）`;
+}
+
+// ===== 現場選択シート =====
+function showProjectSheet() {
+  const list = document.getElementById('projectSheetList');
+  if (projects.length === 0) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-sub);font-size:14px;">現場が登録されていません</div>`;
+  } else {
+    list.innerHTML = projects.map(p => `
+      <div class="sheet-item" onclick="selectProject('${p.id}')">
+        <div style="flex:1;">
+          <div class="sheet-item-name">${esc(p.name)}</div>
+          <div class="sheet-item-sub">TO: ${p.toEmails.join(', ') || '未設定'}</div>
+        </div>
+        ${p.id === config.currentProjectId ? '<span class="sheet-item-check">✔</span>' : ''}
+      </div>
+    `).join('');
+  }
+  document.getElementById('projectSheet').classList.add('show');
+}
+
+function closeProjectSheet(e) {
+  if (!e || e.target === document.getElementById('projectSheet'))
+    document.getElementById('projectSheet').classList.remove('show');
+}
+
+function selectProject(id) {
+  config.currentProjectId = id;
+  saveConfig();
+  updateHeader();
+  document.getElementById('projectSheet').classList.remove('show');
+  showToast('✔ ' + currentProject().name);
+}
+
+function closeSheetAndAddProject() {
+  document.getElementById('projectSheet').classList.remove('show');
+  setTimeout(() => { showSettings(); newProject(); }, 200);
+}
+
+// ===== 録音 =====
+function toggleRecording() {
+  isRecording ? stopRecording() : startRecording();
+}
+
+let recognitionHadError = false;
+
+function startRecording() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('音声認識が使えません', true); return; }
+
+  transcript = '';
+  recognitionHadError = false;
+  isRecording = true;
+  vibrate([100]); flashScreen();
+  const btn = document.getElementById('micBtn');
+  btn.classList.add('recording'); btn.textContent = '⏹';
+  setStatus('録音中... タップで停止', 'recording');
+  document.getElementById('waveformContainer').classList.add('recording');
+
+  function createAndStart() {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ja-JP';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = e => {
+      for (let i = e.resultIndex; i < e.results.length; i++)
+        transcript += e.results[i][0].transcript;
+    };
+
+    recognition.onerror = e => {
+      if (e.error === 'not-allowed') {
+        // マイク許可エラーは致命的 → 停止
+        recognitionHadError = true;
+        isRecording = false;
+        btn.classList.remove('recording'); btn.textContent = '🎤';
+        setStatus('タップして録音開始', '');
+        showToast('マイクの許可が必要です', true);
+      } else if (e.error === 'no-speech') {
+        // 無音検出は無視して再起動（録音継続）
+      } else {
+        recognitionHadError = true;
+      }
+    };
+
+    recognition.onend = () => {
+      if (!isRecording || recognitionHadError) {
+        // 手動停止 or エラー → 処理完了
+        onRecordEnd();
+        return;
+      }
+      // iOSで自動停止した場合 → 再起動して録音継続
+      setTimeout(() => {
+        if (isRecording) {
+          try { createAndStart(); } catch(e) { isRecording = false; onRecordEnd(); }
+        }
+      }, 150);
+    };
+
+    try { recognition.start(); } catch(e) {
+      isRecording = false;
+      btn.classList.remove('recording'); btn.textContent = '🎤';
+      setStatus('タップして録音開始', '');
+      showToast('録音開始に失敗しました', true);
+    }
+  }
+
+  createAndStart();
+}
+
+function stopRecording() {
+  isRecording = false;
+  if (recognition) {
+    try { recognition.stop(); } catch(e) { onRecordEnd(); }
+  } else {
+    onRecordEnd();
+  }
+}
+
+function onRecordEnd() {
+  // 致命的エラー（not-allowed等）で既にリセット済みの場合は何もしない
+  const btn = document.getElementById('micBtn');
+  if (!btn.classList.contains('recording') && !btn.classList.contains('processing') && btn.textContent === '🎤') return;
+  vibrate([80,40,80]); flashScreen();
+  btn.classList.remove('recording');
+  document.getElementById('waveformContainer').classList.remove('recording');
+  if (!transcript.trim()) {
+    btn.textContent = '🎤'; setStatus('タップして録音開始', '');
+    showToast('音声が認識されませんでした', true); return;
+  }
+  btn.classList.add('processing'); btn.textContent = '⏳';
+  setStatus('AI整形中...', 'processing');
+  processWithAI(correctVoice(transcript.trim()));
+}
+
+// ===== AI整形 =====
+async function processWithAI(text) {
+  let result = text;
+  if (config.proxyUrl) {
+    try {
+      const res = await fetch(config.proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'ai',
+          payload: {
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 600,
+            system: `あなたは土木・建築・測量の施工管理専門AIです。
+音声認識テキストを現場メモとして箇条書きに整形してください。
+入力テキストは事前に音声補正済みです。残った誤変換は専門知識で補完してください。
+びーえむ→BM（水準点）、てぃーぴー→TP（もりかえ点）、あいぴー→IP（中間点）
+びーえす→BS（後視）、えふえす→FS（前視）、あいえいち→IH（器械高）
+しーびーあーる→CBR値、えぬち→N値
+でぃーえむ→DM工法、ぴーえいちしーぐい→PHC杭
+じゃんか→ジャンカ、こーるどじょいんと→コールドジョイント
+じゃかご/ふとんかご→蛇籠、ぼっくすかるばーと→ボックスカルバート
+にんにち→人日
+
+【出力ルール】
+・1項目1行、「・」始まり
+・数値・単位・重機規格はそのまま維持
+・余計な説明・前置きは不要`,
+            messages: [{ role: 'user', content: `以下の音声認識テキストを建設現場メモとして整形してください：\n${text}` }]
+          }
+        })
+      });
+      const d = await res.json();
+      if (d.content?.[0]) result = d.content[0].text.trim();
+    } catch(e) { /* fallback to raw */ }
+  }
+  addMemo(result, text);
+}
+
+async function addMemo(text, raw) {
+  const memo = {
+    id: Date.now().toString(), date: todayStr(), time: timeStr(),
+    text, raw, photos: [], tag: null, weather: null
+  };
+  memos.unshift(memo);
+  saveMemos();
+  renderMemoList();
+  const btn = document.getElementById('micBtn');
+  btn.classList.remove('processing'); btn.textContent = '🎤';
+  setStatus('タップして録音開始', '');
+  showToast('✔ 保存しました');
+  // 天気を非同期で取得・追記
+  fetchWeatherAndAttach(memo.id);
+}
+
+// ===== 写真（メインボタン） =====
+function addPhotoToLatest() {
+  if (memos.length === 0) {
+    // メモなし → 写真のみのメモを作成
+    pickPhoto(null);
+  } else {
+    // 最新メモに追加
+    const latest = [...memos].sort((a,b) => b.time.localeCompare(a.time))[0];
+    pickPhoto(latest.id);
+  }
+}
+
+function addPhotoToMemo(memoId) {
+  pickPhoto(memoId);
+}
+
+function compressImage(dataUrl, maxW, maxH, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function pickPhoto(memoId) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(input);
+  input.onchange = e => {
+    const file = e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      // 最大1280px・品質0.75に圧縮（メール送信サイズ対策）
+      const compressed = await compressImage(ev.target.result, 1280, 1280, 0.75);
+      if (memoId) {
+        const idx = memos.findIndex(m => m.id === memoId);
+        if (idx >= 0) { memos[idx].photos = [compressed]; saveMemos(); renderMemoList(); showToast('📷 写真を追加しました'); }
+      } else {
+        const memo = { id: Date.now().toString(), date: todayStr(), time: timeStr(), text: '（写真メモ）', raw: '', photos: [compressed], tag: null };
+        memos.unshift(memo); saveMemos(); renderMemoList(); showToast('📷 写真を保存しました');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// ===== メモ一覧 =====
+function renderMemoList() {
+  const list = document.getElementById('memoList');
+  const btn  = document.getElementById('sendBtn');
+  if (memos.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">🎤</div><p>マイクまたはカメラボタンで<br>現場メモを記録してください</p></div>`;
+    btn.disabled = true; return;
+  }
+  btn.disabled = false;
+  // 新しい順（降順）
+  const sorted = [...memos].sort((a,b) => b.time.localeCompare(a.time));
+  list.innerHTML = sorted.map((m, i) => {
+    const isFirst = i === 0;
+    const weatherBadge = m.weather
+      ? `<span class="weather-badge">${m.weather.icon} ${m.weather.temp}°C</span>` : '';
+    const rawSection = m.raw && m.raw !== m.text ? `
+      <div style="margin-top:6px;">
+        <button class="raw-toggle-btn" onclick="toggleRawText('${m.id}')">📝 AI整形前のテキストを確認</button>
+        <div class="raw-text-box" id="raw-${m.id}">${escHtml(m.raw)}
+          <br><button class="raw-restore-btn" onclick="restoreRaw('${m.id}')">↩ このテキストに戻す</button>
+        </div>
+      </div>` : '';
+    return `
+    <div class="memo-card" id="card-${m.id}" data-id="${m.id}">
+      <div class="memo-swipe-bg">🗑</div>
+      <div class="memo-card-inner">
+        <div class="memo-meta">
+          <span class="memo-time">🕐 ${m.time}${weatherBadge}</span>
+          <div class="memo-expand-icons" onclick="toggleMemoDetail('${m.id}')" style="cursor:pointer;padding:4px 0 4px 12px;">
+            ${m.photos && m.photos.length > 0 ? '<span class="memo-has-photo">📷</span>' : ''}
+            <span class="memo-expand-arrow ${isFirst ? 'open' : ''}" id="arrow-${m.id}">▼</span>
+          </div>
+        </div>
+        <div class="memo-text">${escHtml(m.text)}</div>
+        <div class="memo-detail ${isFirst ? 'open' : ''}" id="detail-${m.id}">
+          ${m.photos && m.photos.length > 0
+            ? `<div class="memo-photo" style="margin-top:10px;"><img src="${m.photos[0]}" alt="添付写真"></div>`
+            : `<div class="memo-photo-empty" onclick="addPhotoToMemo('${m.id}')">📷 写真を追加</div>`
+          }
+          ${rawSection}
+          <div class="memo-actions">
+            <button class="memo-action-btn" onclick="openEdit('${m.id}')">✏️ 編集</button>
+            <button class="memo-action-btn del" onclick="delMemo('${m.id}')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `}).join('');
+  initSwipeDelete();
+}
+
+function toggleMemoDetail(id) {
+  const detail = document.getElementById(`detail-${id}`);
+  const arrow  = document.getElementById(`arrow-${id}`);
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function esc(s) { return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== 編集 =====
+function openEdit(id) {
+  const m = memos.find(m => m.id === id); if (!m) return;
+  editingMemoId = id;
+  document.getElementById('editTextarea').value = m.text;
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('show');
+  editingMemoId = null;
+}
+function saveEdit() {
+  const text = document.getElementById('editTextarea').value.trim();
+  if (!text) return;
+  const idx = memos.findIndex(m => m.id === editingMemoId);
+  if (idx >= 0) { memos[idx].text = text; saveMemos(); renderMemoList(); showToast('✔ 更新しました'); }
+  document.getElementById('editModal').classList.remove('show');
+  editingMemoId = null;
+}
+
+// ===== 削除 =====
+function delMemo(id) {
+  if (!confirm('このメモを削除しますか？')) return;
+  memos = memos.filter(m => m.id !== id); saveMemos(); renderMemoList();
+}
+
+// ===== 日報送信 =====
+async function sendDailyReport() {
+  if (memos.length === 0) return;
+  const proj = currentProject();
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const subject = `【日報】${proj ? proj.name : '現場'} ${dateStr}`;
+  const sorted = [...memos].sort((a,b) => a.time.localeCompare(b.time));
+
+  // メモごとに時刻・テキスト・天気・写真をまとめた構造データを送る
+  const memoItems = sorted.map(m => ({
+    time: m.time,
+    text: m.text,
+    weather: m.weather || null,
+    photo: (m.photos && m.photos.length > 0) ? m.photos[0] : null
+  }));
+
+  const headerText = [
+    `${proj ? proj.name : '現場'} 日報`, dateStr,
+    `担当：${config.userName || ''}`
+  ].join('\n');
+
+  const to = proj?.toEmails || [];
+  const cc = proj?.ccEmails || [];
+
+  if (!config.proxyUrl || to.length === 0) {
+    showToast('現場のメールアドレスを設定してください', true);
+    return;
+  }
+
+  showToast('📧 送信中...');
+  try {
+    const res = await fetch(config.proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'email',
+        to,
+        cc,
+        subject,
+        headerText,
+        memoItems
+      })
+    });
+    if (res.ok) {
+      // 履歴に保存
+      const allPhotos = memoItems.filter(m => m.photo).map(m => m.photo);
+      const bodyText = headerText + '\n\n━━ 本日のメモ ━━\n\n' + memoItems.map(m => `[${m.time}]\n${m.text}`).join('\n\n') + '\n\n以上';
+      saveReportHistory({ subject, text: bodyText, photos: allPhotos, sentAt: new Date().toISOString() });
+      showToast('✔ 日報を送信しました');
+    } else {
+      const err = await res.text();
+      console.error(err);
+      showToast('送信に失敗しました', true);
+    }
+  } catch(e) {
+    showToast('送信エラー：' + e.message, true);
+  }
+}
+
+// ===== 設定画面 =====
+function showSettings() {
+  document.getElementById('settingUserName').value = config.userName;
+  document.getElementById('settingProxyUrl').value = config.proxyUrl;
+  document.getElementById('settingApiKey').value   = config.apiKey;
+  renderProjectList();
+  showScreen('settingsScreen');
+}
+function saveSettings() {
+  config.userName = document.getElementById('settingUserName').value.trim();
+  const pUrl = document.getElementById('settingProxyUrl').value.trim();
+  const aKey = document.getElementById('settingApiKey').value.trim();
+  // 空欄の場合はデフォルト値を維持
+  config.proxyUrl = pUrl || DEFAULT_PROXY;
+  config.apiKey   = aKey || 'built-in';
+  saveConfig(); updateHeader(); checkApiNotice();
+  showMain(); showToast('✔ 設定を保存しました');
+}
+
+function renderProjectList() {
+  document.getElementById('projectList').innerHTML = projects.map(p => `
+    <div class="project-card" onclick="editProject('${p.id}')">
+      <div class="project-card-info">
+        <div class="project-card-name">${esc(p.name)}</div>
+        <div class="project-card-emails">TO: ${p.toEmails.join(', ') || '未設定'}</div>
+      </div>
+      <div style="font-size:18px;color:var(--text-sub);">›</div>
+    </div>
+  `).join('');
+}
+
+// ===== 現場追加・編集 =====
+function newProject() {
+  editingProjectId = null;
+  tempProject = { name: '', toEmails: [], ccEmails: [] };
+  document.getElementById('projectEditTitle').textContent = '現場を追加';
+  document.getElementById('editProjectName').value = '';
+  renderEditTags();
+  showScreen('projectEditScreen');
+}
+
+function editProject(id) {
+  const p = projects.find(p => p.id === id); if (!p) return;
+  editingProjectId = id;
+  tempProject = { name: p.name, toEmails: [...p.toEmails], ccEmails: [...p.ccEmails] };
+  document.getElementById('projectEditTitle').textContent = '現場を編集';
+  document.getElementById('editProjectName').value = p.name;
+  renderEditTags();
+  showScreen('projectEditScreen');
+}
+
+function saveProject() {
+  const name = document.getElementById('editProjectName').value.trim();
+  if (!name) { showToast('工事名を入力してください', true); return; }
+  tempProject.name = name;
+  if (editingProjectId) {
+    const idx = projects.findIndex(p => p.id === editingProjectId);
+    if (idx >= 0) projects[idx] = { ...projects[idx], ...tempProject };
+  } else {
+    projects.push({ id: Date.now().toString(), ...tempProject });
+  }
+  saveProjects(); renderProjectList();
+  showScreen('settingsScreen');
+  showToast('✔ 現場を保存しました');
+}
+
+function deleteCurrentProject() {
+  if (!editingProjectId) { backFromProjectEdit(); return; }
+  if (!confirm('この現場を削除しますか？')) return;
+  projects = projects.filter(p => p.id !== editingProjectId);
+  if (config.currentProjectId === editingProjectId) config.currentProjectId = null;
+  saveProjects(); saveConfig(); renderProjectList(); updateHeader();
+  showScreen('settingsScreen');
+  showToast('削除しました');
+}
+
+function backFromProjectEdit() { showScreen('settingsScreen'); }
+
+// ===== アドレス帳 =====
+function showAddressBook() {
+  renderContactList();
+  showScreen('addressBookScreen');
+}
+
+function renderContactList() {
+  const el = document.getElementById('contactList');
+  if (contacts.length === 0) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-sub);font-size:14px;">まだ登録されていません</div>`;
+    return;
+  }
+  el.innerHTML = contacts.map(c => `
+    <div class="contact-card">
+      <div class="contact-avatar">${esc(c.name.charAt(0))}</div>
+      <div class="contact-info">
+        <div class="contact-name">${esc(c.name)}</div>
+        <div class="contact-email">${esc(c.email)}</div>
+      </div>
+      <button class="contact-del-btn" onclick="deleteContact('${c.id}')">×</button>
+    </div>
+  `).join('');
+}
+
+function addContact() {
+  const name  = document.getElementById('newContactName').value.trim();
+  const email = document.getElementById('newContactEmail').value.trim();
+  if (!name)  { showToast('氏名を入力してください', true); return; }
+  if (!email || !email.includes('@')) { showToast('正しいメールアドレスを入力してください', true); return; }
+  contacts.push({ id: Date.now().toString(), name, email });
+  saveContacts();
+  document.getElementById('newContactName').value = '';
+  document.getElementById('newContactEmail').value = '';
+  renderContactList();
+  showToast('✔ 連絡先を追加しました');
+}
+
+function deleteContact(id) {
+  if (!confirm('この連絡先を削除しますか？')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  saveContacts();
+  renderContactList();
+}
+
+// ===== 連絡先選択シート =====
+function openContactSelect(type) {
+  if (contacts.length === 0) {
+    showToast('アドレス帳に連絡先がありません', true);
+    return;
+  }
+  contactSelectType = type;
+  const current = type === 'to' ? tempProject.toEmails : tempProject.ccEmails;
+  contactSelectTemp = [...current];
+  document.getElementById('contactSelectTitle').textContent =
+    `連絡先を選択（${type === 'to' ? 'TO' : 'CC'}）`;
+  renderContactSelectList();
+  document.getElementById('contactSelectSheet').classList.add('show');
+}
+
+function renderContactSelectList() {
+  document.getElementById('contactSelectList').innerHTML = contacts.map(c => {
+    const checked = contactSelectTemp.includes(c.email);
+    return `
+      <div class="contact-select-item" onclick="toggleContactSelect('${c.email}')">
+        <div class="contact-select-check ${checked ? 'checked' : ''}" id="chk-${c.id}">
+          ${checked ? '✓' : ''}
+        </div>
+        <div class="contact-select-info">
+          <div class="contact-select-name">${esc(c.name)}</div>
+          <div class="contact-select-email">${esc(c.email)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleContactSelect(email) {
+  const idx = contactSelectTemp.indexOf(email);
+  if (idx >= 0) contactSelectTemp.splice(idx, 1);
+  else contactSelectTemp.push(email);
+  renderContactSelectList();
+}
+
+function confirmContactSelect() {
+  if (contactSelectType === 'to') tempProject.toEmails = [...contactSelectTemp];
+  else tempProject.ccEmails = [...contactSelectTemp];
+  renderEditTags();
+  document.getElementById('contactSelectSheet').classList.remove('show');
+  showToast(`✔ ${contactSelectTemp.length}件を設定しました`);
+}
+
+function closeContactSelect(e) {
+  if (e.target === document.getElementById('contactSelectSheet'))
+    document.getElementById('contactSelectSheet').classList.remove('show');
+}
+
+// ===== 現場編集：メールタグ =====
+function renderEditTags() {
+  ['to','cc'].forEach(type => {
+    const emails = type === 'to' ? tempProject.toEmails : tempProject.ccEmails;
+    const el = document.getElementById(`edit${type.charAt(0).toUpperCase()+type.slice(1)}Tags`);
+    el.innerHTML = emails.map((e,i) => `
+      <div class="email-tag">
+        <span>${esc(e)}</span>
+        <button class="email-tag-remove" onclick="removeEditEmail('${type}',${i})">×</button>
+      </div>
+    `).join('');
+  });
+}
+
+function addEditEmail(type) {
+  const inputId = type === 'to' ? 'editToInput' : 'editCcInput';
+  const input = document.getElementById(inputId);
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) { showToast('正しいメールアドレスを入力', true); return; }
+  if (type === 'to') tempProject.toEmails.push(email);
+  else               tempProject.ccEmails.push(email);
+  input.value = '';
+  renderEditTags();
+}
+
+function removeEditEmail(type, idx) {
+  if (type === 'to') tempProject.toEmails.splice(idx, 1);
+  else               tempProject.ccEmails.splice(idx, 1);
+  renderEditTags();
+}
+
+// ===== 画面遷移 =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showMain() { showScreen('mainScreen'); }
+
+// ===== UIヘルパー =====
+function setStatus(msg, cls) {
+  const el = document.getElementById('micStatus');
+  el.textContent = msg; el.className = 'mic-status ' + (cls || '');
+}
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
+function flashScreen() {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(255,107,53,0.2);z-index:9999;pointer-events:none;transition:opacity 0.3s;';
+  document.body.appendChild(d);
+  requestAnimationFrame(() => setTimeout(() => { d.style.opacity='0'; setTimeout(()=>d.remove(),300); }, 80));
+}
+
+// ===== ダークモード =====
+function initDarkMode() {
+  const saved = localStorage.getItem(KEY_DARK);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = saved !== null ? saved === '1' : prefersDark;
+  applyDarkMode(isDark);
+}
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem(KEY_DARK, isDark ? '1' : '0');
+  document.getElementById('darkToggleBtn').textContent = isDark ? '☀️' : '🌙';
+}
+function applyDarkMode(isDark) {
+  document.body.classList.toggle('dark', isDark);
+  document.getElementById('darkToggleBtn').textContent = isDark ? '☀️' : '🌙';
+}
+
+// ===== 天気取得 =====
+const WEATHER_ICONS = { 0:'☀️', 1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌦',82:'⛈',95:'⛈',96:'⛈',99:'⛈' };
+async function fetchWeatherAndAttach(memoId) {
+  try {
+    const pos = await new Promise((res, rej) =>
+      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
+    );
+    const { latitude: lat, longitude: lon } = pos.coords;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current_weather=true`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const cw = data.current_weather;
+    const icon = WEATHER_ICONS[cw.weathercode] || '🌡';
+    const temp = Math.round(cw.temperature);
+    const idx = memos.findIndex(m => m.id === memoId);
+    if (idx >= 0) {
+      memos[idx].weather = { icon, temp };
+      saveMemos();
+      renderMemoList();
+    }
+  } catch(e) { /* 位置情報拒否・オフラインは無視 */ }
+}
+
+// ===== 元テキスト確認・復元 =====
+function toggleRawText(id) {
+  const box = document.getElementById(`raw-${id}`);
+  if (box) box.classList.toggle('open');
+}
+function restoreRaw(id) {
+  const m = memos.find(m => m.id === id);
+  if (!m || !m.raw) return;
+  if (!confirm('AI整形前のテキストに戻しますか？')) return;
+  m.text = m.raw;
+  saveMemos(); renderMemoList();
+  showToast('↩ 元テキストに戻しました');
+}
+
+// ===== スワイプ削除 =====
+function initSwipeDelete() {
+  document.querySelectorAll('.memo-card').forEach(card => {
+    let startX = 0, dx = 0;
+    const inner = card.querySelector('.memo-card-inner');
+    const bg    = card.querySelector('.memo-swipe-bg');
+    const id    = card.dataset.id;
+
+    card.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      dx = 0;
+    }, { passive: true });
+
+    card.addEventListener('touchmove', e => {
+      dx = e.touches[0].clientX - startX;
+      if (dx > 0) { inner.style.transform = ''; bg.style.opacity = 0; return; }
+      const shift = Math.max(dx, -80);
+      inner.style.transform = `translateX(${shift}px)`;
+      bg.style.opacity = Math.min(-shift / 80, 1);
+    }, { passive: true });
+
+    card.addEventListener('touchend', () => {
+      if (dx < -60) {
+        if (confirm('このメモを削除しますか？')) { delMemo(id); return; }
+      }
+      inner.style.transform = '';
+      bg.style.opacity = 0;
+    });
+  });
+}
+
+// ===== 日報履歴 =====
+function saveReportHistory(report) {
+  try {
+    const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+    reports.unshift({ id: Date.now().toString(), ...report });
+    // 最大30件保持
+    if (reports.length > 30) reports.splice(30);
+    localStorage.setItem(KEY_REPORTS, JSON.stringify(reports));
+  } catch(e) {}
+}
+function showHistory() {
+  const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+  const el = document.getElementById('historyList');
+  if (reports.length === 0) {
+    el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-sub);font-size:14px;">まだ送信した日報はありません</div>`;
+  } else {
+    el.innerHTML = reports.map(r => {
+      const d = new Date(r.sentAt);
+      const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const photoCount = r.photos ? r.photos.length : 0;
+      return `<div class="history-item" onclick="showReportDetail('${r.id}')">
+        <div class="history-item-title">${esc(r.subject)}</div>
+        <div class="history-item-sub">送信：${dateStr}${photoCount > 0 ? ` 📷 ${photoCount}枚` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  showScreen('historyScreen');
+}
+function showReportDetail(id) {
+  const reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]');
+  const r = reports.find(r => r.id === id);
+  if (!r) return;
+  document.getElementById('historyDetailTitle').textContent = r.subject;
+  document.getElementById('historyDetailBody').textContent = r.text;
+  const photosEl = document.getElementById('historyDetailPhotos');
+  if (r.photos && r.photos.length > 0) {
+    photosEl.innerHTML = r.photos.map(p => `<img src="${p}" alt="写真">`).join('');
+  } else {
+    photosEl.innerHTML = '';
+  }
+  showScreen('historyDetailScreen');
+}
+
+init();
+setupPWA();
+
+function setupPWA() {
+  function makeIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const r = size * 0.2;
+    const s = size / 80;
+
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
+    ctx.arcTo(size, 0, size, r, r);
+    ctx.lineTo(size, size - r);
+    ctx.arcTo(size, size, size - r, size, r);
+    ctx.lineTo(r, size); ctx.arcTo(0, size, 0, size - r, r);
+    ctx.lineTo(0, r); ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fillStyle = '#1A3A5C';
+    ctx.fill();
+
+    ctx.fillStyle = 'white';
+    const mx = 18*s, my = 18*s, mw = 34*s, mh = 44*s, mr = 4*s;
+    ctx.beginPath();
+    ctx.moveTo(mx+mr, my); ctx.lineTo(mx+mw-mr, my);
+    ctx.arcTo(mx+mw, my, mx+mw, my+mr, mr);
+    ctx.lineTo(mx+mw, my+mh-mr);
+    ctx.arcTo(mx+mw, my+mh, mx+mw-mr, my+mh, mr);
+    ctx.lineTo(mx+mr, my+mh); ctx.arcTo(mx, my+mh, mx, my+mh-mr, mr);
+    ctx.lineTo(mx, my+mr); ctx.arcTo(mx, my, mx+mr, my, mr);
+    ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = '#D1D5DB'; ctx.lineWidth = 2.5*s; ctx.lineCap = 'round';
+    [[24,30,46,30],[24,38,46,38],[24,46,36,46]].forEach(([x1,y1,x2,y2]) => {
+      ctx.beginPath(); ctx.moveTo(x1*s, y1*s); ctx.lineTo(x2*s, y2*s); ctx.stroke();
+    });
+
+    ctx.fillStyle = '#FF6B35';
+    ctx.beginPath(); ctx.arc(56*s, 54*s, 14*s, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(51*s, 49*s);
+    ctx.arcTo(51*s, 44*s, 61*s, 44*s, 5*s);
+    ctx.arcTo(61*s, 44*s, 61*s, 60*s, 5*s);
+    ctx.arcTo(61*s, 60*s, 51*s, 60*s, 5*s);
+    ctx.arcTo(51*s, 60*s, 51*s, 44*s, 5*s);
+    ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 2.5*s; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(48*s, 56*s);
+    ctx.quadraticCurveTo(48*s, 64*s, 56*s, 64*s);
+    ctx.quadraticCurveTo(64*s, 64*s, 64*s, 56*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(56*s, 64*s); ctx.lineTo(56*s, 68*s); ctx.stroke();
+
+    return c.toDataURL('image/png');
+  }
+
+  const icon192 = makeIcon(192);
+  const icon512 = makeIcon(512);
+
+  const link180 = document.createElement('link');
+  link180.rel = 'apple-touch-icon';
+  link180.href = makeIcon(180);
+  document.head.appendChild(link180);
+
+  const manifest = {
+    name: '現場メモAI', short_name: '現場メモ',
+    description: '施工管理向け音声メモアプリ',
+    start_url: '.', display: 'standalone',
+    background_color: '#1A3A5C', theme_color: '#1A3A5C', orientation: 'portrait',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png' },
+      { src: icon512, sizes: '512x512', type: 'image/png' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const manifestUrl = URL.createObjectURL(blob);
+  const linkManifest = document.createElement('link');
+  linkManifest.rel = 'manifest';
+  linkManifest.href = manifestUrl;
+  document.head.appendChild(linkManifest);
+}
+</script>
+</body>
+</html>
