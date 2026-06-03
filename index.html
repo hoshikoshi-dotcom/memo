@@ -191,6 +191,26 @@
     .send-btn:active { opacity: 0.85; }
     .send-btn:disabled { background: var(--border); color: var(--text-sub); }
 
+
+    /* テキスト入力エリア */
+    .text-input-area { padding: 0 14px 8px; flex-shrink: 0; }
+    .text-input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .text-input-box {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 10px 12px; font-size: 15px; font-family: inherit;
+      background: var(--card); color: var(--text); resize: none;
+      min-height: 44px; max-height: 120px; outline: none; line-height: 1.5;
+    }
+    .text-input-box:focus { border-color: var(--primary); }
+    .text-input-box::placeholder { color: #C0C4CC; font-size: 13px; }
+    .text-send-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: none;
+      background: var(--accent); color: white; font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .text-send-btn:active { opacity: 0.8; }
+    body.dark .text-input-box { background: var(--dm-card); border-color: var(--dm-border); color: var(--dm-text); }
     /* EMPTY */
     .empty-state { text-align: center; padding: 36px 20px; color: var(--text-sub); }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
@@ -584,6 +604,17 @@
     <button class="camera-btn" onclick="addPhotoToLatest()">📷</button>
   </div>
   <div class="mic-status" id="micStatus">タップして録音開始</div>
+
+  <!-- テキスト入力エリア -->
+  <div class="text-input-area">
+    <div class="text-input-row">
+      <textarea class="text-input-box" id="textInputBox" rows="1"
+        placeholder="手入力またはTypelessから貼り付け..."
+        oninput="autoResizeTextInput(this)"
+        onkeydown="handleTextInputKey(event)"></textarea>
+      <button class="text-send-btn" onclick="submitTextInput()" title="送信">↑</button>
+    </div>
+  </div>
 
   <div class="scroll-area">
     <div id="apiNotice" class="api-notice" style="display:none;">
@@ -1232,6 +1263,30 @@ async function processWithAI(text) {
     } catch(e) { /* fallback to raw */ }
   }
   addMemo(result, text);
+}
+
+
+// ===== テキスト入力 =====
+function autoResizeTextInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleTextInputKey(e) {
+  // Enterキー単体で送信（Shift+Enterは改行）
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitTextInput();
+  }
+}
+
+function submitTextInput() {
+  const box = document.getElementById('textInputBox');
+  const text = box.value.trim();
+  if (!text) return;
+  box.value = '';
+  box.style.height = 'auto';
+  processWithAI(text);
 }
 
 async function addMemo(text, raw) {
